@@ -1,0 +1,280 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 220 25% 8%;
+    --foreground: 180 10% 90%;
+
+    --card: 220 20% 12%;
+    --card-foreground: 180 10% 90%;
+    --card-hover: 220 20% 15%;
+    --card-selected: 175 70% 15%;
+    --card-border: 175 50% 30%;
+
+    --popover: 220 20% 10%;
+    --popover-foreground: 180 10% 90%;
+
+    --primary: 175 70% 45%;
+    --primary-foreground: 220 25% 8%;
+    --primary-glow: 175 80% 50%;
+
+    --secondary: 220 15% 18%;
+    --secondary-foreground: 180 10% 80%;
+
+    --muted: 220 15% 15%;
+    --muted-foreground: 220 10% 50%;
+
+    --accent: 175 60% 40%;
+    --accent-foreground: 220 25% 8%;
+
+    --destructive: 0 70% 50%;
+    --destructive-foreground: 0 0% 100%;
+
+    --success: 145 60% 45%;
+    --success-foreground: 145 60% 10%;
+    
+    --warning: 40 80% 50%;
+    --warning-foreground: 40 80% 10%;
+
+    --border: 220 15% 20%;
+    --input: 220 15% 15%;
+    --ring: 175 70% 45%;
+
+    --radius: 0.5rem;
+
+    --sidebar-background: 220 25% 6%;
+    --sidebar-foreground: 180 10% 70%;
+    --sidebar-primary: 175 70% 45%;
+    --sidebar-primary-foreground: 220 25% 8%;
+    --sidebar-accent: 220 20% 12%;
+    --sidebar-accent-foreground: 180 10% 90%;
+    --sidebar-border: 220 15% 15%;
+    --sidebar-ring: 175 70% 45%;
+
+    /* Gradients */
+    --gradient-primary: linear-gradient(135deg, hsl(175 70% 45%), hsl(175 80% 55%));
+    --gradient-card: linear-gradient(180deg, hsl(220 20% 14%), hsl(220 20% 10%));
+    --gradient-glow: radial-gradient(ellipse at center, hsl(175 70% 45% / 0.15), transparent 70%);
+    
+    /* Shadows */
+    --shadow-card: 0 4px 20px -4px hsl(0 0% 0% / 0.5);
+    --shadow-glow: 0 0 20px hsl(175 70% 45% / 0.3);
+    --shadow-selected: 0 0 0 2px hsl(175 70% 45% / 0.5), 0 0 30px hsl(175 70% 45% / 0.2);
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    font-family: 'Inter', system-ui, sans-serif;
+  }
+
+  code, .font-mono {
+    font-family: 'JetBrains Mono', monospace;
+  }
+}
+
+@layer components {
+  .device-card {
+    @apply relative rounded-lg border transition-all duration-200 cursor-pointer overflow-hidden;
+    background: var(--gradient-card);
+    box-shadow: var(--shadow-card);
+  }
+
+  .device-card:hover {
+    @apply border-primary/50;
+    transform: translateY(-2px);
+  }
+
+  .device-card.selected {
+    @apply border-primary;
+    background: hsl(var(--card-selected));
+    box-shadow: var(--shadow-selected);
+  }
+
+  .device-card-header {
+    @apply px-3 py-2 text-xs font-medium text-center truncate transition-all duration-300;
+    background: linear-gradient(180deg, hsl(var(--card-hover)), hsl(var(--card)));
+  }
+
+  .device-card.selected .device-card-header {
+    background: hsl(176, 80%, 36%);
+    color: hsl(180, 10%, 20%);
+  }
+
+  .status-indicator {
+    @apply w-2 h-2 rounded-full;
+  }
+
+  .status-online {
+    @apply bg-success;
+    box-shadow: 0 0 8px hsl(var(--success));
+  }
+
+  .status-offline {
+    @apply bg-muted-foreground;
+  }
+
+  .status-busy {
+    @apply bg-warning;
+    box-shadow: 0 0 8px hsl(var(--warning));
+  }
+
+  .glow-text {
+    text-shadow: 0 0 10px hsl(var(--primary) / 0.5);
+  }
+
+  .panel-slide {
+    @apply transition-transform duration-300 ease-out;
+  }
+
+  .task-panel {
+    @apply fixed left-0 top-0 h-full z-50 border-r border-sidebar-border;
+    background: hsl(var(--sidebar-background));
+    box-shadow: 10px 0 40px hsl(0 0% 0% / 0.5);
+  }
+
+  .scale-slider::-webkit-slider-thumb {
+    @apply appearance-none w-4 h-4 rounded-full bg-primary cursor-pointer;
+    box-shadow: 0 0 10px hsl(var(--primary));
+  }
+
+  .scale-slider::-webkit-slider-runnable-track {
+    @apply h-1 rounded-full bg-muted;
+  }
+
+  .mini-device {
+    @apply w-8 h-8 rounded border flex items-center justify-center text-xs font-mono cursor-pointer transition-all duration-150;
+  }
+
+  .mini-device:hover {
+    @apply border-primary/70;
+  }
+
+  .mini-device.selected {
+    @apply bg-primary text-primary-foreground border-primary;
+  }
+
+  /* Device checkbox - small square boxes for selection */
+  .device-checkbox {
+    @apply w-6 h-6 rounded border-2 border-primary/30 cursor-pointer transition-all duration-150;
+    background: hsl(var(--card));
+  }
+
+  .device-checkbox:hover {
+    @apply border-primary/70;
+  }
+
+  .device-checkbox.selected {
+    @apply bg-primary border-primary;
+  }
+
+  .device-checkbox.online {
+    border-color: hsl(var(--success) / 0.5);
+  }
+
+  .device-checkbox.online.selected {
+    @apply bg-success border-success;
+  }
+
+  .device-checkbox.offline {
+    border-color: hsl(var(--muted-foreground) / 0.3);
+  }
+
+  .device-checkbox.offline.selected {
+    @apply bg-muted-foreground border-muted-foreground;
+  }
+
+  .device-checkbox.busy {
+    border-color: hsl(var(--warning) / 0.5);
+  }
+
+  .device-checkbox.busy.selected {
+    @apply bg-warning border-warning;
+  }
+
+  .swipe-trigger {
+    @apply fixed left-0 top-1/2 -translate-y-1/2 z-40 bg-primary text-primary-foreground rounded-r-lg p-2 cursor-pointer transition-all duration-200;
+  }
+
+  .swipe-trigger:hover {
+    @apply pl-4;
+    box-shadow: var(--shadow-glow);
+  }
+}
+
+@layer utilities {
+  .scrollbar-thin {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(180 100% 50%) transparent;
+    margin-right: 8px;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    @apply bg-cyan-500 rounded-full;
+  }
+
+  /* Global scrollbar for all elements */
+  *::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  *::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  *::-webkit-scrollbar-thumb {
+    background: hsl(180 100% 50%);
+    border-radius: 3px;
+  }
+
+  *::-webkit-scrollbar-thumb:hover {
+    background: hsl(180 100% 40%);
+  }
+
+  /* Firefox */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(180 100% 50%) transparent;
+  }
+
+  .animate-pulse-glow {
+    animation: pulse-glow 2s ease-in-out infinite;
+  }
+
+  @keyframes pulse-glow {
+    0%, 100% {
+      box-shadow: 0 0 5px hsl(var(--primary) / 0.3);
+    }
+    50% {
+      box-shadow: 0 0 20px hsl(var(--primary) / 0.6);
+    }
+  }
+
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+}

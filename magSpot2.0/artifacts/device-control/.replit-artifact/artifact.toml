@@ -1,0 +1,31 @@
+kind = "web"
+previewPath = "/"
+title = "Device Control Center"
+version = "1.0.0"
+id = "artifacts/device-control"
+router = "path"
+
+[[integratedSkills]]
+name = "react-vite"
+version = "1.0.0"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 24041
+
+[services.development]
+run = "pnpm --filter @workspace/device-control run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/device-control", "run", "build" ]
+publicDir = "artifacts/device-control/dist/public"
+serve = "static"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "24041"
+BASE_PATH = "/"
