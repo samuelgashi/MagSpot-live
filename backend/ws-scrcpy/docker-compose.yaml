@@ -1,0 +1,24 @@
+version: "3.9"
+
+services:
+  ws-scrcpy-user1:
+    build:
+      context: .
+      dockerfile: dockerfile
+    container_name: ${CONTAINER_NAME}
+    env_file: ./.env.user1
+    volumes:
+      - ./adb_monitor.sh:/app/adb_monitor.sh
+    environment:
+      WS_SCRCPY_PORT: ${WS_SCRCPY_PORT}
+      DEVICE_RANGE: ${DEVICE_RANGE}
+      ADB_PORT: ${ADB_PORT}
+    command: >
+      sh -c "chmod +x /app/ws-scrcpy/adb_connect.sh &&
+            adb -P $ADB_PORT start-server &&
+            /app/ws-scrcpy/adb_connect.sh \"$DEVICE_RANGE\" $ADB_PORT &
+            cd /app/ws-scrcpy &&
+            node dist/index.js --port=$WS_SCRCPY_PORT --adb-port=$ADB_PORT"
+
+    network_mode: "host"
+    restart: unless-stopped

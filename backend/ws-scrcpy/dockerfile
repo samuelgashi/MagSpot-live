@@ -1,0 +1,59 @@
+# ============================================================
+#   Dockerfile: Custom ADB + ws-scrcpy runtime
+# ============================================================
+FROM node:20-bullseye
+
+# ----------------------------
+# System dependencies
+# ----------------------------
+RUN apt-get update && apt-get install -y \
+    wget unzip curl git \
+    build-essential g++ make \
+    python3 python3-dev python3-pip \
+    libnss3 libdbus-1-3 libatk1.0-0 libgbm-dev \
+    libasound2 libxrandr2 libxkbcommon-dev libxfixes3 \
+    libxcomposite1 libxdamage1 libatk-bridge2.0-0 libcups2 \
+    netcat-openbsd ipcalc \
+    && rm -rf /var/lib/apt/lists/*
+
+# ----------------------------
+# Android Platform Tools (ADB)
+# ----------------------------
+RUN wget -q https://dl.google.com/android/repository/platform-tools-latest-linux.zip \
+        -O /tmp/platform-tools.zip \
+    && unzip /tmp/platform-tools.zip -d /opt \
+    && rm /tmp/platform-tools.zip
+
+ENV PATH="/opt/platform-tools:$PATH"
+
+# ----------------------------
+# ws-scrcpy build
+# ----------------------------
+WORKDIR /app
+COPY / ./ws-scrcpy
+RUN cd ws-scrcpy \
+    && npm install --build-from-source \
+    && npm rebuild node-pty --build-from-source \
+    && npm run dist:prod
+
+# ----------------------------
+# Environment defaults
+# ----------------------------
+ENV WS_SCRCPY_PORT=8080
+ENV ADB_PORT=5037
+ENV ALLOWED_IPS=""
+
+# ----------------------------
+# Entrypoint: start ADB + ws-scrcpy
+# ----------------------------
+CMD ["sh", "-c", "\
+    echo 'Starting dedicated ADB server on port $ADB_PORT...' && \
+    adb -P $ADB_PORT start-server && \
+    cd /app/ws-scrcpy && \
+    if [ -f dist/index.js ]; then \
+      echo 'Starting ws-scrcpy on port $WS_SCRCPY_PORT using ADB port $ADB_PORT...' && \
+      node dist/index.js --port=$WS_SCRCPY_PORT --adb-port=$ADB_PORT --allowed-ips=\"$ALLOWED_IPS\"; \
+    else \
+      echo 'No build found, running npm start...' && \
+      npm start -- --port=$WS_SCRCPY_PORT --adb-port=$ADB_PORT --allowed-ips=\"$ALLOWED_IPS\"; \
+    fi"]
