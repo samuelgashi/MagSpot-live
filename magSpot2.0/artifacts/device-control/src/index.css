@@ -1,0 +1,191 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+@import "tailwindcss";
+@import "tw-animate-css";
+@plugin "@tailwindcss/typography";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: hsl(var(--background));
+  --color-foreground: hsl(var(--foreground));
+  --color-border: hsl(var(--border));
+  --color-input: hsl(var(--input));
+  --color-ring: hsl(var(--ring));
+  --color-card: hsl(var(--card));
+  --color-card-foreground: hsl(var(--card-foreground));
+  --color-popover: hsl(var(--popover));
+  --color-popover-foreground: hsl(var(--popover-foreground));
+  --color-primary: hsl(var(--primary));
+  --color-primary-foreground: hsl(var(--primary-foreground));
+  --color-secondary: hsl(var(--secondary));
+  --color-secondary-foreground: hsl(var(--secondary-foreground));
+  --color-muted: hsl(var(--muted));
+  --color-muted-foreground: hsl(var(--muted-foreground));
+  --color-accent: hsl(var(--accent));
+  --color-accent-foreground: hsl(var(--accent-foreground));
+  --color-destructive: hsl(var(--destructive));
+  --color-destructive-foreground: hsl(var(--destructive-foreground));
+  --color-sidebar: hsl(var(--sidebar));
+  --color-sidebar-foreground: hsl(var(--sidebar-foreground));
+  --color-sidebar-border: hsl(var(--sidebar-border));
+  --color-sidebar-primary: hsl(var(--sidebar-primary));
+  --color-sidebar-primary-foreground: hsl(var(--sidebar-primary-foreground));
+  --color-sidebar-accent: hsl(var(--sidebar-accent));
+  --color-sidebar-accent-foreground: hsl(var(--sidebar-accent-foreground));
+  --font-sans: var(--app-font-sans);
+  --font-mono: var(--app-font-mono);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+}
+
+:root {
+  --accent-color: #00d4e8;
+  --accent-hsl: 185 100% 46%;
+
+  --background: 240 20% 4%;
+  --foreground: 0 0% 97%;
+  --border: 0 0% 100% / 0.07;
+  --input: 0 0% 100% / 0.06;
+  --ring: 185 100% 46%;
+  --card: 0 0% 100% / 0.04;
+  --card-foreground: 0 0% 97%;
+  --popover: 237 20% 8%;
+  --popover-foreground: 0 0% 97%;
+  --primary: 185 100% 46%;
+  --primary-foreground: 240 20% 4%;
+  --secondary: 0 0% 100% / 0.06;
+  --secondary-foreground: 0 0% 97%;
+  --muted: 0 0% 100% / 0.04;
+  --muted-foreground: 0 0% 100% / 0.4;
+  --accent: 0 0% 100% / 0.08;
+  --accent-foreground: 0 0% 97%;
+  --destructive: 0 80% 55%;
+  --destructive-foreground: 0 0% 97%;
+  --sidebar: 0 0% 100% / 0.02;
+  --sidebar-foreground: 0 0% 97%;
+  --sidebar-border: 0 0% 100% / 0.06;
+  --sidebar-primary: 185 100% 46%;
+  --sidebar-primary-foreground: 240 20% 4%;
+  --sidebar-accent: 0 0% 100% / 0.06;
+  --sidebar-accent-foreground: 0 0% 97%;
+  --sidebar-ring: 185 100% 46%;
+  --app-font-sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  --app-font-mono: 'SF Mono', 'Fira Code', 'Fira Mono', monospace;
+  --radius: 0.75rem;
+}
+
+* { box-sizing: border-box; }
+html, body, #root {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+
+body {
+  font-family: var(--app-font-sans);
+  background: #07080f;
+  background-image:
+    radial-gradient(ellipse 80% 50% at 50% -20%, rgba(0,212,232,0.05) 0%, transparent 70%),
+    radial-gradient(ellipse 60% 40% at 80% 80%, rgba(0,100,220,0.04) 0%, transparent 60%);
+  background-attachment: fixed;
+  color: hsl(var(--foreground));
+  -webkit-font-smoothing: antialiased;
+}
+
+.glass {
+  background: rgba(255,255,255,0.04);
+  backdrop-filter: blur(20px) saturate(1.6);
+  -webkit-backdrop-filter: blur(20px) saturate(1.6);
+  border: 1px solid rgba(255,255,255,0.08);
+}
+
+.glass-sidebar {
+  background: rgba(255,255,255,0.025);
+  backdrop-filter: blur(24px) saturate(1.4);
+  -webkit-backdrop-filter: blur(24px) saturate(1.4);
+  border-right: 1px solid rgba(255,255,255,0.06);
+}
+
+.glass-card {
+  background: rgba(255,255,255,0.04);
+  backdrop-filter: blur(16px) saturate(1.5);
+  -webkit-backdrop-filter: blur(16px) saturate(1.5);
+  border: 1px solid rgba(255,255,255,0.08);
+  transition: border-color 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
+}
+
+.glass-card:hover {
+  background: rgba(255,255,255,0.06);
+  border-color: rgba(255,255,255,0.13);
+}
+
+.glass-card[data-drag-hover="true"] {
+  border-color: rgba(0, 212, 232, 0.75) !important;
+  box-shadow: 0 0 14px rgba(0, 212, 232, 0.18) !important;
+  transition: none !important;
+}
+
+/* Sidebar chip rubber-band highlight */
+.chip-btn[data-chip-drag="true"] {
+  border-color: rgba(0, 212, 232, 0.75) !important;
+  background: rgba(0, 212, 232, 0.18) !important;
+  color: #00d4e8 !important;
+  box-shadow: 0 0 8px rgba(0, 212, 232, 0.2) !important;
+  transition: none !important;
+}
+
+.glass-card.selected {
+  background: rgba(255,255,255,0.04);
+  border-color: rgba(0,212,232,0.35);
+  box-shadow: 0 0 24px rgba(0,212,232,0.10);
+}
+
+.glass-card.focus-origin {
+  border-color: rgba(168,85,247,0.72);
+  box-shadow: 0 0 26px rgba(168,85,247,0.22);
+}
+
+/* Slider */
+.grid-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 3px;
+  background: rgba(255,255,255,0.12);
+  border-radius: 99px;
+  outline: none;
+  cursor: pointer;
+}
+.grid-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 14px; height: 14px;
+  border-radius: 50%;
+  background: #00d4e8;
+  box-shadow: 0 0 8px rgba(0,212,232,0.5);
+  cursor: pointer;
+  transition: box-shadow 0.15s ease, transform 0.15s ease;
+}
+.grid-slider::-webkit-slider-thumb:hover {
+  box-shadow: 0 0 14px rgba(0,212,232,0.7);
+  transform: scale(1.15);
+}
+.grid-slider::-moz-range-thumb {
+  width: 14px; height: 14px;
+  border-radius: 50%;
+  background: #00d4e8;
+  box-shadow: 0 0 8px rgba(0,212,232,0.5);
+  cursor: pointer;
+  border: none;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.12); border-radius: 99px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.2); }
+
+.no-scrollbar { scrollbar-width: none; -ms-overflow-style: none; }
+.no-scrollbar::-webkit-scrollbar { display: none; }
