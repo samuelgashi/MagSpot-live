@@ -1,0 +1,1 @@
+declare module 'appium-xcuitest-driver/build/lib/device-connections-factory';
