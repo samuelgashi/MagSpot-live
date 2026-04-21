@@ -1,0 +1,569 @@
+openapi: 3.1.0
+info:
+  # Do not change the title, if the title changes, the import paths will be broken
+  title: Api
+  version: 0.1.0
+  description: Device Control Center API
+servers:
+  - url: /api
+    description: Base API path
+tags:
+  - name: health
+    description: Health operations
+  - name: devices
+    description: Device management
+  - name: groups
+    description: Device group management
+  - name: tasks
+    description: Task management
+paths:
+  /healthz:
+    get:
+      operationId: healthCheck
+      tags: [health]
+      summary: Health check
+      responses:
+        "200":
+          description: Healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthStatus"
+
+  /devices:
+    get:
+      operationId: listDevices
+      tags: [devices]
+      summary: List all devices
+      responses:
+        "200":
+          description: List of devices
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Device"
+    post:
+      operationId: createDevice
+      tags: [devices]
+      summary: Create/register a device
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateDeviceBody"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Device"
+
+  /devices/scan:
+    post:
+      operationId: scanDevices
+      tags: [devices]
+      summary: Simulate IP range scan to discover devices
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ScanRequestBody"
+      responses:
+        "200":
+          description: Discovered devices
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Device"
+
+  /devices/stats:
+    get:
+      operationId: getDeviceStats
+      tags: [devices]
+      summary: Get device statistics summary
+      responses:
+        "200":
+          description: Device stats
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DeviceStats"
+
+  /devices/{id}:
+    get:
+      operationId: getDevice
+      tags: [devices]
+      summary: Get a single device
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Device
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Device"
+        "404":
+          description: Not found
+    put:
+      operationId: updateDevice
+      tags: [devices]
+      summary: Update a device
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateDeviceBody"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Device"
+    delete:
+      operationId: deleteDevice
+      tags: [devices]
+      summary: Delete a device
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  /groups:
+    get:
+      operationId: listGroups
+      tags: [groups]
+      summary: List all device groups
+      responses:
+        "200":
+          description: List of groups
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Group"
+    post:
+      operationId: createGroup
+      tags: [groups]
+      summary: Create a group
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateGroupBody"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Group"
+
+  /groups/{id}:
+    get:
+      operationId: getGroup
+      tags: [groups]
+      summary: Get a group
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Group
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Group"
+    put:
+      operationId: updateGroup
+      tags: [groups]
+      summary: Update a group
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateGroupBody"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Group"
+    delete:
+      operationId: deleteGroup
+      tags: [groups]
+      summary: Delete a group
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  /tasks:
+    get:
+      operationId: listTasks
+      tags: [tasks]
+      summary: List all tasks
+      responses:
+        "200":
+          description: List of tasks
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Task"
+    post:
+      operationId: createTask
+      tags: [tasks]
+      summary: Create a task
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateTaskBody"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Task"
+
+  /tasks/{id}:
+    get:
+      operationId: getTask
+      tags: [tasks]
+      summary: Get a task
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Task
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Task"
+    put:
+      operationId: updateTask
+      tags: [tasks]
+      summary: Update a task
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateTaskBody"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Task"
+    delete:
+      operationId: deleteTask
+      tags: [tasks]
+      summary: Delete a task
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+components:
+  schemas:
+    HealthStatus:
+      type: object
+      properties:
+        status:
+          type: string
+      required:
+        - status
+
+    Device:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        ip:
+          type: string
+        status:
+          type: string
+          enum: [online, offline, busy, idle]
+        model:
+          type: string
+        androidVersion:
+          type: string
+        batteryLevel:
+          type: integer
+        groupId:
+          type: integer
+          nullable: true
+        sheetUrl:
+          type: string
+          nullable: true
+        lastSeen:
+          type: string
+        createdAt:
+          type: string
+      required:
+        - id
+        - name
+        - ip
+        - status
+        - createdAt
+
+    CreateDeviceBody:
+      type: object
+      properties:
+        name:
+          type: string
+        ip:
+          type: string
+        model:
+          type: string
+        androidVersion:
+          type: string
+        groupId:
+          type: integer
+          nullable: true
+        sheetUrl:
+          type: string
+          nullable: true
+      required:
+        - name
+        - ip
+
+    UpdateDeviceBody:
+      type: object
+      properties:
+        name:
+          type: string
+        ip:
+          type: string
+        status:
+          type: string
+          enum: [online, offline, busy, idle]
+        model:
+          type: string
+        androidVersion:
+          type: string
+        groupId:
+          type: integer
+          nullable: true
+        sheetUrl:
+          type: string
+          nullable: true
+
+    ScanRequestBody:
+      type: object
+      properties:
+        ipRange:
+          type: string
+          description: "IP range to scan, e.g. 192.168.1"
+      required:
+        - ipRange
+
+    DeviceStats:
+      type: object
+      properties:
+        total:
+          type: integer
+        online:
+          type: integer
+        offline:
+          type: integer
+        busy:
+          type: integer
+        idle:
+          type: integer
+        groups:
+          type: integer
+      required:
+        - total
+        - online
+        - offline
+        - busy
+        - idle
+        - groups
+
+    Group:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        description:
+          type: string
+          nullable: true
+        color:
+          type: string
+          nullable: true
+        deviceCount:
+          type: integer
+        createdAt:
+          type: string
+      required:
+        - id
+        - name
+        - deviceCount
+        - createdAt
+
+    CreateGroupBody:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+          nullable: true
+        color:
+          type: string
+          nullable: true
+      required:
+        - name
+
+    UpdateGroupBody:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+          nullable: true
+        color:
+          type: string
+          nullable: true
+
+    Task:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        description:
+          type: string
+          nullable: true
+        type:
+          type: string
+          enum: [youtube, music, browse, search, custom]
+        scriptRef:
+          type: string
+          nullable: true
+        durationMin:
+          type: integer
+        durationMax:
+          type: integer
+        createdAt:
+          type: string
+      required:
+        - id
+        - name
+        - type
+        - durationMin
+        - durationMax
+        - createdAt
+
+    CreateTaskBody:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+          nullable: true
+        type:
+          type: string
+          enum: [youtube, music, browse, search, custom]
+        scriptRef:
+          type: string
+          nullable: true
+        durationMin:
+          type: integer
+        durationMax:
+          type: integer
+      required:
+        - name
+        - type
+        - durationMin
+        - durationMax
+
+    UpdateTaskBody:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+          nullable: true
+        type:
+          type: string
+          enum: [youtube, music, browse, search, custom]
+        scriptRef:
+          type: string
+          nullable: true
+        durationMin:
+          type: integer
+        durationMax:
+          type: integer
