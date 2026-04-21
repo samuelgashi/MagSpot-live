@@ -1,0 +1,74 @@
+uploads/
+.env
+*.db
+__py*
+venv
+*.
+
+*.mp4
+
+__py*
+
+# Dependency directories
+node_modules/
+/frontend/node_modules
+/backend/venv
+/backend/__pycache__
+
+# Build output
+/frontend/.next/
+/frontend/out/
+/ws-scrcpy/dist/
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+*.log
+
+# Environment variables
+.env
+.env.user*
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+/frontend/.env
+/backend/.env
+
+# IDE and editor files
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Operating system files
+.DS_Store
+Thumbs.db
+
+# Docker ignore files should be versioned, but in case they are not:
+.dockerignore
+
+venv
+dist
+build
+node_modules
+
+!sample.mp4
+/bin/files/running_con*
+
+package-lock*
+!/backend/ws-scrcpy/package-lock*
+temp_*
+test.py
+test_*
+running_c*
+appium_pool.json
+test.*
+chromedriver*
+*chrome_versions*
+*.spec
+!get_chrome_versions*

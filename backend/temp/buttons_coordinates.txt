@@ -1,0 +1,60 @@
+Shuffle Button Coordinates [Width: 120 Height: 120]:
+Top:    [75,  1700]
+Left:   [20,  1825]
+Right:  [140, 1825]
+Bottom: [75,  1820]
+
+Back Button Coordinates [Width: 140 Height: 140]:
+Top:    [280, 1690]
+Left:   [210, 1825]
+Right:  [350, 1825]
+Bottom: [280, 1830]
+
+Play Button Coordinates [Width: 180 Height: 180]:
+Top:    [535, 1680]
+Left:   [445, 1770]
+Right:  [630, 1770]
+Bottom: [535, 1860]
+
+Next Button Coordinates [Width: 140 Height: 140]:
+Top:    [785, 1690]
+Left:   [720, 1825]
+Right:  [860, 1825]
+Bottom: [785, 1830]
+
+Loop Button Coordinates [Width: 120 Height: 120]:
+Top:    [990,  1700]
+Left:   [930,  1825]
+Right:  [1050, 1825]
+Bottom: [990,  1820]
+
+
+Like Button Coordinates [Width: 80 Height: 80]:
+Top:    [130,  1425]
+Left:   [90,   1470]
+Right:  [170,  1470]
+Bottom: [130,  1505]
+
+Like Button Coordinates [Width: 80 Height: 80]:
+Top:    [290,  1425]
+Left:   [250,  1470]
+Right:  [330,  1470]
+Bottom: [290,  1505]
+
+Random Click Coordinates [Width: 340 Height: 100]:
+Left-Top:     [660,  1250]
+Left-Bottom:  [660,  1350]
+Right-Top:    [1000, 1250]
+Right-Bottom: [1000, 1350]
+
+
+
+PHYSICAL RESOLUTION:
+Button   [CenterX, CenterY]
+Shuffle  [75,  1270]
+Loop     [645, 1270]
+Next     [195, 1270]
+Back     [520, 1270]
+Play     [355, 1270]
+Like     [115, 1050]
+DisLike  [214, 1050]

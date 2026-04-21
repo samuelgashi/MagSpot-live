@@ -1,0 +1,36 @@
+{
+    "shuffle": {
+        "base":    [75, 1760],
+        "physical": [75, 1270],
+        "radius": 60
+    },
+    "loop": {
+        "base":    [990, 1760],
+        "physical": [645, 1270],
+        "radius": 60
+    },
+    "next": {
+        "base":    [785, 1760],
+        "physical": [520, 1270],
+        "radius": 70
+    },
+    "back": {
+        "base":    [280, 1760],
+        "radius": 70
+    },
+    "play": {
+        "base":    [535, 1770],
+        "physical": [355, 1270],
+        "radius": 90
+    },
+    "like": {
+        "base":    [130, 1465],
+        "physical": [115, 1050],
+        "radius": 40
+    },
+    "dislike": {
+        "base":    [290, 1465],
+        "physical": [214, 1050],
+        "radius": 40
+    }
+}
