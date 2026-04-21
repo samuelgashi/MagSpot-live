@@ -1,0 +1,20 @@
+BASE VERSION:
+
+FIRST TIME:
+- Login To MagSpot
+- Go To Settings, input API Enpoint, API key and hit save
+- Test The Connection To Make Sure Connection Is Good
+
+ASSIGN TASK:
+- Go to Dashboard.
+- Click Any Device From Devices
+- Click The Activity From Activities Box
+- Input "Artist / Playlist" name
+- Input Excel Sheet URL [Optional] if you have multiple artists.
+- Add Play Hours [Streaming Hours For Each Artist Or Playlist].
+- Add Remarks [Optional], this help you to understand the task [Logs]
+- Click SUBMIT.
+
+
+ANDROID INSTRUCTIONS:
+- Make Sure Display Timeout Set 10 minutes
