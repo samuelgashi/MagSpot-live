@@ -1,0 +1,179 @@
+version: "3.9"
+services:
+  magSpot:
+    image: mag_spot
+    container_name: magSpot
+    # user: "${UID}:${GID}"
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        # Frontend build-time vars (Vite)
+        VITE_BACKEND_API_URL: ${VITE_BACKEND_API_URL}
+        BACKEND_HOST: ${BACKEND_HOST}
+        FRONTEND_API_BASE_URL: ${FRONTEND_API_BASE_URL}
+        VITE_CLERK_PUBLISHABLE_KEY: ${VITE_CLERK_PUBLISHABLE_KEY}
+        VITE_NETWORK_BASE_IP: ${VITE_NETWORK_BASE_IP}
+
+        # Ports
+        BACKEND_PORT: ${BACKEND_PORT}
+        FRONTEND_PORT: ${FRONTEND_PORT}
+        DOCKER_GID: ${DOCKER_GID}
+
+        USER_ID: ${UID} 
+        GROUP_ID: ${GID}
+
+        # POSTGRES
+        POSTGRES_HOST: ${POSTGRES_HOST}
+        POSTGRES_PORT: ${POSTGRES_PORT}
+        POSTGRES_DB: ${POSTGRES_DB}
+        POSTGRES_USER: ${POSTGRES_USER}
+        POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+
+        YT_MUSIC_PACKAGE_NAME: ${YT_MUSIC_PACKAGE_NAME}
+        YT_MUSIC_ACTIVITY_NAME: ${YT_MUSIC_ACTIVITY_NAME}
+        BASE_WIDTH: ${BASE_WIDTH}
+        BASE_HEIGHT: ${BASE_HEIGHT}
+        IS_OVERRIDE_RESOLUTION: ${IS_OVERRIDE_RESOLUTION}
+        BUTTONS_CENTERS: ${BUTTONS_CENTERS}
+        SCROLL_DOWN_LIMIT: ${SCROLL_DOWN_LIMIT}
+        WS_SCRCPY_PORT: ${WS_SCRCPY_PORT}
+        SUBNET_BASE: ${SUBNET_BASE}
+        ADB_PORT: ${ANDROID_ADB_SERVER_PORT}
+        CONCURRENCY: ${CONCURRENCY}
+        SCAN_TIMEOUT_MS: ${SCAN_TIMEOUT_MS}
+        ANDROID_ADB_SERVER_PORT: ${ANDROID_ADB_SERVER_PORT}
+        ADB_SERVER_PORT: ${ANDROID_ADB_SERVER_PORT}
+        ADB_VENDOR_KEYS: ${ADB_VENDOR_KEYS_CONTAINER}
+        ADB_VENDOR_KEYS_HOST: ${ADB_VENDOR_KEYS_HOST}
+        ANDROID_ADB_KEY_PATH: ${ANDROID_ADB_KEY_PATH}
+        ANDROID_ADB_SERVER_ADDRESS: "127.0.0.1"
+        ADB_PATH: ${ADB_PATH}
+        
+        HOST_USER: ${USER}
+        APPIUM_POOL_SIZE: ${APPIUM_POOL_SIZE}
+        APPIUM_BATCH_PERCENT: ${APPIUM_BATCH_PERCENT}
+        APPIUM_BATCH_WAIT: ${APPIUM_BATCH_WAIT}
+        APPIUM_BUSY_DB_TIMEOUT: ${APPIUM_BUSY_DB_TIMEOUT}
+
+        CHROME_PACKAGE_NAME: ${CHROME_PACKAGE_NAME}
+        CHROME_ACTIVITY_NAME: ${CHROME_ACTIVITY_NAME}
+        GOOGLE_CHROME_DRIVER_HOST_PATH: ${GOOGLE_CHROME_DRIVER_HOST_PATH}
+        GOOGLE_CHROME_DRIVER_CONTAINER_PATH: ${GOOGLE_CHROME_DRIVER_CONTAINER_PATH}
+
+    environment:
+      # Backend runtime vars
+      ENV: ${ENV}
+      BACKEND_PORT: ${BACKEND_PORT}
+      WS_SCRCPY_PORT: ${WS_SCRCPY_PORT}
+      BACKEND_ADMIN_KEY: ${BACKEND_ADMIN_KEY}
+      ADMIN_TOKEN_EXPIRE_LIMIT: ${ADMIN_TOKEN_EXPIRE_LIMIT}
+      BACKEND_FLASK_SECRET_KEY: ${BACKEND_FLASK_SECRET_KEY}
+      CLOUDFLARED_TUNNEL_TOKEN: ${CLOUDFLARED_TUNNEL_TOKEN}
+      BACKEND_DEV_API_KEY: ${BACKEND_DEV_API_KEY}
+      DEVICES_RANGE: ${DEVICES_RANGE}
+      CLERK_SECRET_KEY: ${CLERK_SECRET_KEY}
+      CLERK_ISSUER: ${CLERK_ISSUER}
+      CLERK_JWKS_URL: ${CLERK_JWKS_URL}
+      VITE_CLERK_PUBLISHABLE_KEY: ${VITE_CLERK_PUBLISHABLE_KEY}
+      VITE_NETWORK_BASE_IP: ${VITE_NETWORK_BASE_IP}
+      YT_MUSIC_PACKAGE_NAME: ${YT_MUSIC_PACKAGE_NAME}
+      YT_MUSIC_ACTIVITY_NAME: ${YT_MUSIC_ACTIVITY_NAME}
+      BASE_WIDTH: ${BASE_WIDTH}
+      BASE_HEIGHT: ${BASE_HEIGHT}
+      IS_OVERRIDE_RESOLUTION: ${IS_OVERRIDE_RESOLUTION}
+      BUTTONS_CENTERS: ${BUTTONS_CENTERS}
+      SCROLL_DOWN_LIMIT: ${SCROLL_DOWN_LIMIT}
+      SUBNET_BASE: ${SUBNET_BASE}
+      CONCURRENCY: ${CONCURRENCY}
+      SCAN_TIMEOUT_MS: ${SCAN_TIMEOUT_MS}
+      ANDROID_ADB_SERVER_PORT: ${ANDROID_ADB_SERVER_PORT}
+      ADB_SERVER_PORT: ${ANDROID_ADB_SERVER_PORT}
+      ADB_PORT: ${ANDROID_ADB_SERVER_PORT}
+      ADB_VENDOR_KEYS: ${ADB_VENDOR_KEYS_CONTAINER}
+      ADB_VENDOR_KEYS_HOST: ${ADB_VENDOR_KEYS_HOST}
+      ANDROID_ADB_KEY_PATH: ${ANDROID_ADB_KEY_PATH}
+      ADB_SERVER_SOCKET: tcp:127.0.0.1:${ANDROID_ADB_SERVER_PORT}
+      ANDROID_ADB_SERVER_ADDRESS: "127.0.0.1"
+      ADB_PATH: ${ADB_PATH}
+
+      HOST_USER: ${USER}
+      APPIUM_POOL_SIZE: ${APPIUM_POOL_SIZE}
+      APPIUM_BATCH_PERCENT: ${APPIUM_BATCH_PERCENT}
+      APPIUM_BATCH_WAIT: ${APPIUM_BATCH_WAIT}
+      APPIUM_BUSY_DB_TIMEOUT: ${APPIUM_BUSY_DB_TIMEOUT}
+
+      CHROME_PACKAGE_NAME: ${CHROME_PACKAGE_NAME}
+      CHROME_ACTIVITY_NAME: ${CHROME_ACTIVITY_NAME}
+      GOOGLE_CHROME_DRIVER_HOST_PATH: ${GOOGLE_CHROME_DRIVER_HOST_PATH}
+      GOOGLE_CHROME_DRIVER_CONTAINER_PATH: ${GOOGLE_CHROME_DRIVER_CONTAINER_PATH}
+
+
+    ports:
+     - "${BACKEND_PORT}:${BACKEND_PORT}"
+     - "${FRONTEND_PORT}:${FRONTEND_PORT}"
+
+    # privileged: true
+    network_mode: "host"
+    restart: unless-stopped
+
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ${ADB_VENDOR_KEYS_HOST}:${ADB_VENDOR_KEYS_CONTAINER}
+      - /home/${USER}/adb_keys_backup:/home/appuser/.android:ro
+      # - /home/glitch/.android:/home/appuser/.android
+      # - /home/glitch/.android:/root/.android
+      # - /dev/bus/usb:/dev/bus/usb
+
+    command: >
+      sh -c "python3 backend/wsgi.py & 
+            serve -s frontend/dist -l ${FRONTEND_PORT}"
+
+    depends_on:
+      - magSpot-postgres
+
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:${BACKEND_PORT}/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+
+
+
+  magSpot-postgres:
+    image: postgres:latest
+    container_name: magSpot_postgres
+    restart: unless-stopped
+
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+
+    ports:
+      - "${POSTGRES_PORT}:5432"
+
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+    volumes:
+      - /home/$USER/Documents/Automation/magSpot_postgress:/var/lib/postgresql
+
+    command: >
+      postgres
+      -c checkpoint_timeout=15min
+      -c max_wal_size=4GB
+      -c tcp_keepalives_idle=60
+      -c tcp_keepalives_interval=30
+      -c tcp_keepalives_count=5
+
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+

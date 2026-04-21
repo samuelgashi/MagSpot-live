@@ -1,0 +1,32 @@
+version: "3.9"
+
+services:
+  appium:
+    image: appium/appium:latest
+    container_name: appium
+    restart: unless-stopped
+
+    # ports:
+    #   - "4723:4723"
+
+    network_mode: "host"
+
+    # Start Appium server automatically
+    command: >
+      sh -c '
+        # appium plugin install --source=npm appium-inspector-plugin@2025.7.3 &&
+        appium \
+          --address 0.0.0.0 \
+          --port 4723 \
+          --log-level info \
+          --allow-cors \
+          --allow-insecure uiautomator2:adb_shell \
+          --base-path /wd/hub 
+          # --use-plugins=inspector
+      '
+
+    # privileged: true
+
+    volumes:
+      # - /dev/bus/usb:/dev/bus/usb
+      - ~/.android:/root/.android
