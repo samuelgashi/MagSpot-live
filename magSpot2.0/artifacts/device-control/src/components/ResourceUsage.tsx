@@ -18,7 +18,13 @@ const emptyResources: ResourceState = { cpu: null, ram: null, containers: null }
 
 function getPercent(value: ResourcePayload["cpu"] | ResourcePayload["ram"]): number | null {
   const raw = value?.percent ?? value?.usage;
-  return typeof raw === "number" && Number.isFinite(raw) ? Math.round(raw) : null;
+  if (typeof raw === "number" && Number.isFinite(raw)) return Math.round(raw);
+  // Handle string values like "35%" returned by some backend versions
+  if (typeof raw === "string") {
+    const parsed = parseFloat(raw.replace("%", ""));
+    return Number.isFinite(parsed) ? Math.round(parsed) : null;
+  }
+  return null;
 }
 
 function normalizeResources(raw: unknown): ResourceState {

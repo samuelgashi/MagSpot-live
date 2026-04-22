@@ -505,6 +505,79 @@ function refreshDevices() {
   io.emit('devices:update', Array.from(devices.values()));
 }
 
+// ─── Auth helpers (simple HS256 JWT using Node crypto) ───────────────────────
+const crypto = require('crypto');
+
+const AUTH_SECRET = process.env.FLASK_SECRET_KEY || 'a_default_secret_key_if_not_set';
+const SESSION_EXPIRE_DAYS = parseInt(process.env.SESSION_EXPIRE_DAYS || '30', 10);
+let adminPassword = process.env.ADMIN_PASSWORD || 'admin';
+
+function b64url(str) {
+  return Buffer.from(str).toString('base64url');
+}
+
+function signJwt(payload) {
+  const header = b64url(JSON.stringify({ alg: 'HS256', typ: 'JWT' }));
+  const body = b64url(JSON.stringify(payload));
+  const sig = crypto.createHmac('sha256', AUTH_SECRET).update(`${header}.${body}`).digest('base64url');
+  return `${header}.${body}.${sig}`;
+}
+
+function verifyJwt(token) {
+  try {
+    const parts = token.split('.');
+    if (parts.length !== 3) return null;
+    const expected = crypto.createHmac('sha256', AUTH_SECRET).update(`${parts[0]}.${parts[1]}`).digest('base64url');
+    if (!crypto.timingSafeEqual(Buffer.from(expected), Buffer.from(parts[2]))) return null;
+    const payload = JSON.parse(Buffer.from(parts[1], 'base64url').toString());
+    if (payload.exp && Math.floor(Date.now() / 1000) > payload.exp) return null;
+    return payload;
+  } catch { return null; }
+}
+
+function authMiddleware(req, res, next) {
+  const auth = req.headers['authorization'] || '';
+  if (auth.startsWith('Bearer ')) {
+    const payload = verifyJwt(auth.slice(7));
+    if (!payload) return res.status(401).json({ error: 'Invalid or expired session token' });
+    req.userId = payload.user_id || payload.sub;
+    return next();
+  }
+  const apiKey = req.headers['x-api-key'] || req.headers['X-API-KEY'] || req.query.api_key;
+  if (apiKey) {
+    req.userId = 'admin';
+    return next();
+  }
+  res.status(401).json({ error: 'Authentication required' });
+}
+
+// ── POST /api/auth/login ──────────────────────────────────────────────────────
+app.post('/api/auth/login', (req, res) => {
+  const { username, password } = req.body || {};
+  if (!username || !password) return res.status(400).json({ error: 'username and password are required' });
+  if (username.trim() !== 'admin' || password !== adminPassword) {
+    return res.status(401).json({ error: 'Invalid username or password' });
+  }
+  const now = Math.floor(Date.now() / 1000);
+  const token = signJwt({ user_id: 'admin', sub: 'admin', type: 'session', iat: now, exp: now + SESSION_EXPIRE_DAYS * 86400 });
+  res.json({ token, user_id: 'admin' });
+});
+
+// ── POST /api/auth/change_password ───────────────────────────────────────────
+app.post('/api/auth/change_password', authMiddleware, (req, res) => {
+  const { current_password, new_password } = req.body || {};
+  if (!current_password || !new_password) return res.status(400).json({ error: 'current_password and new_password are required' });
+  if (current_password !== adminPassword) return res.status(401).json({ error: 'Current password is incorrect' });
+  if (new_password.length < 4) return res.status(400).json({ error: 'New password must be at least 4 characters' });
+  adminPassword = new_password;
+  res.json({ message: 'Password changed successfully' });
+});
+
+// ── GET /api/auth/me ──────────────────────────────────────────────────────────
+app.get('/api/auth/me', authMiddleware, (req, res) => {
+  res.json({ user_id: req.userId });
+});
+
 // API Routes
 
 app.get('/api/health_check', (req, res) => {

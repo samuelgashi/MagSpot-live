@@ -35,6 +35,10 @@ export function buildMagSpotApiUrl(path: string): string {
 export function getMagSpotHeaders(extra?: HeadersInit): Headers {
   const headers = new Headers(extra);
   if (!headers.has("content-type")) headers.set("content-type", "application/json");
+  // Session token (browser login) takes priority
+  const sessionToken = readLocalStorage("sessionToken");
+  if (sessionToken && !headers.has("authorization")) headers.set("authorization", `Bearer ${sessionToken}`);
+  // Fallback: plain API key for headless / APIAAS clients
   const apiKey = readLocalStorage("apiKey");
   if (apiKey && !headers.has("x-api-key")) headers.set("x-api-key", apiKey);
   return headers;
@@ -325,4 +329,22 @@ export async function getMagSpotActivities(): Promise<MagSpotActivity[]> {
   const response = await fetch(buildMagSpotApiUrl("/api/get_activities"), { headers: getMagSpotHeaders() });
   const json = await readJsonOrThrow<{ data: Record<string, RawActivity> }>(response, "Failed to fetch activities");
   return Object.entries(json.data).map(([key, val]) => ({ key, ...val }));
+}
+
+export async function loginToMagSpot(username: string, password: string): Promise<{ token: string; user_id: string }> {
+  const response = await fetch(buildMagSpotApiUrl("/api/auth/login"), {
+    method: "POST",
+    headers: new Headers({ "content-type": "application/json" }),
+    body: JSON.stringify({ username, password }),
+  });
+  return readJsonOrThrow<{ token: string; user_id: string }>(response, "Login failed");
+}
+
+export async function changeMagSpotPassword(currentPassword: string, newPassword: string): Promise<{ message: string }> {
+  const response = await fetch(buildMagSpotApiUrl("/api/auth/change_password"), {
+    method: "POST",
+    headers: getMagSpotHeaders(),
+    body: JSON.stringify({ current_password: currentPassword, new_password: newPassword }),
+  });
+  return readJsonOrThrow<{ message: string }>(response, "Failed to change password");
 }

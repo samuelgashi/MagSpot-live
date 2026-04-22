@@ -2,6 +2,7 @@ from sqlite3 import IntegrityError
 from app.db.session import SessionLocal
 from app.models.users import Users
 from datetime import datetime
+from werkzeug.security import generate_password_hash, check_password_hash
 
 
 def init_user_records(user_id: str, user_data: dict):
@@ -27,13 +28,17 @@ def init_user_records(user_id: str, user_data: dict):
 
 
 def init_admin_user():
-    """Create an admin user if it doesn't exist."""
+    """Create or update the admin user with the password from config."""
+    from app.config import Config
     db = SessionLocal()
     try:
         admin_id = "admin"
+        pw_hash = generate_password_hash(Config.ADMIN_PASSWORD)
         admin = db.query(Users).filter_by(user_id=admin_id).first()
         if admin:
-            print("ℹ️ Admin user already exists")
+            admin.password_hash = pw_hash
+            db.commit()
+            print("ℹ️ Admin user password synced from config")
             return
 
         admin = Users(
@@ -44,14 +49,46 @@ def init_admin_user():
             full_name="Admin User",
             username="admin",
             primary_email_address="admin@example.com",
-            email_verified=True
+            email_verified=True,
+            password_hash=pw_hash,
         )
         db.add(admin)
         db.commit()
         print("✅ Admin user created")
-    except IntegrityError:
+    except Exception as e:
         db.rollback()
-        print("⚠️ Failed to create admin user (duplicate or constraint error)")
+        print(f"⚠️ Failed to initialize admin user: {e}")
+    finally:
+        db.close()
+
+
+def db_verify_password(username: str, password: str):
+    """Verify username + password. Returns the Users row or None."""
+    db = SessionLocal()
+    try:
+        user = db.query(Users).filter_by(username=username).first()
+        if not user or not user.password_hash:
+            return None
+        if check_password_hash(user.password_hash, password):
+            return user
+        return None
+    finally:
+        db.close()
+
+
+def db_change_password(user_id: str, new_password: str) -> bool:
+    """Update the password_hash for a user. Returns True on success."""
+    db = SessionLocal()
+    try:
+        user = db.query(Users).filter_by(user_id=user_id).first()
+        if not user:
+            return False
+        user.password_hash = generate_password_hash(new_password)
+        db.commit()
+        return True
+    except Exception:
+        db.rollback()
+        return False
     finally:
         db.close()
 

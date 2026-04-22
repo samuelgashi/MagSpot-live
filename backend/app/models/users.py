@@ -21,5 +21,6 @@ class Users(Base):
     email_verified = Column(Boolean, default=False)
     phone_number_verified = Column(Boolean, default=False)
     image_url = Column(Text, nullable=True)
+    password_hash = Column(String, nullable=True)
 
     tunnel = relationship("Tunnel", back_populates="user", uselist=False)

@@ -1,85 +1,77 @@
 
 import jwt
-import datetime
-import requests
+import datetime as dt
 from . import auth_bp
 from app.config import Config
-from flask import Blueprint, request, jsonify,  g
-from flask_jwt_extended import create_access_token
-from app.repositories.users_repo import init_user_records
-from app.utils.auth import auth_required
-
-CLERK_SECRET_KEY = Config.CLERK_SECRET_KEY
-
-@auth_bp.route('/api/authenticate_admin', methods=['POST'])
-def authenticate_admin():
-    """Generates a JWT for admin operations."""
-    data = request.get_json()
-    if not data or data.get('admin_key') != Config.ADMIN_KEY:
-        return jsonify({'error': 'Invalid admin key'}), 403
-    
-    token = jwt.encode({
-        'exp': datetime.utcnow() + datetime.timedelta(hours=Config.TOKEN_EXPIRE_LIMIT)
-    }, Config.ADMIN_KEY, algorithm="HS256")
-    return jsonify({'token': token}), 200
+from flask import request, jsonify, g
+from app.utils.auth import auth_required, create_session_token
+from app.repositories.users_repo import db_verify_password, db_change_password
 
 
+# ─────────────────────────────────────────────────────────
+# POST /api/auth/login  — browser login (returns JWT session token)
+# ─────────────────────────────────────────────────────────
+@auth_bp.route('/login', methods=['POST'])
+def login():
+    data = request.get_json() or {}
+    username = (data.get("username") or "").strip()
+    password = data.get("password") or ""
 
-# CLERK AUTHENTICATIONS
-@auth_bp.route('/clerk', methods=['GET'])
+    if not username or not password:
+        return jsonify({"error": "username and password are required"}), 400
+
+    user = db_verify_password(username, password)
+    if not user:
+        return jsonify({"error": "Invalid username or password"}), 401
+
+    token = create_session_token(user.user_id)
+    return jsonify({"token": token, "user_id": user.user_id}), 200
+
+
+# ─────────────────────────────────────────────────────────
+# POST /api/auth/change_password  — change password (requires session or API key)
+# ─────────────────────────────────────────────────────────
+@auth_bp.route('/change_password', methods=['POST'])
 @auth_required
-def test_auth():
-    resp = requests.get(
-        f"https://api.clerk.dev/v1/users/{g.user_id}",
-        headers={"Authorization": f"Bearer {CLERK_SECRET_KEY}"}
-    )
-    resp.raise_for_status()
-    user_data = resp.json()
+def change_password():
+    data = request.get_json() or {}
+    current_password = data.get("current_password") or ""
+    new_password = data.get("new_password") or ""
 
-    # Normalize Clerk fields
-    email = None
-    email_verified = None
-    if user_data.get("email_addresses"):
-        primary_email = next(
-            (e for e in user_data["email_addresses"] 
-             if e["id"] == user_data.get("primary_email_address_id")), 
-            None
-        )
-        if primary_email:
-            email = primary_email["email_address"]
-            email_verified = primary_email["verification"]["status"] == "verified"
+    if not current_password or not new_password:
+        return jsonify({"error": "current_password and new_password are required"}), 400
 
-    phone = None
-    phone_verified = None
-    if user_data.get("phone_numbers"):
-        primary_phone = next(
-            (p for p in user_data["phone_numbers"] 
-             if p["id"] == user_data.get("primary_phone_number_id")), 
-            None
-        )
-        if primary_phone:
-            phone = primary_phone["phone_number"]
-            phone_verified = primary_phone["verification"]["status"] == "verified"
+    if len(new_password) < 4:
+        return jsonify({"error": "New password must be at least 4 characters"}), 400
 
-    # Convert timestamps
-    def to_datetime(ms):
-        return datetime.datetime.utcfromtimestamp(ms / 1000) if ms else None
+    # Verify current password first
+    from app.repositories.users_repo import db_verify_password as _verify
+    from app.db.session import SessionLocal
+    from app.models.users import Users as _Users
+    db = SessionLocal()
+    try:
+        user = db.query(_Users).filter_by(user_id=g.user_id).first()
+    finally:
+        db.close()
 
-    user_record = {
-        "external_id": user_data.get("external_id"),
-        "first_name": user_data.get("first_name"),
-        "last_name": user_data.get("last_name"),
-        "full_name": f"{user_data.get('first_name','')} {user_data.get('last_name','')}".strip(),
-        "username": user_data.get("username"),
-        "created_at": to_datetime(user_data.get("created_at")),
-        "updated_at": to_datetime(user_data.get("updated_at")),
-        "last_sign_in_at": to_datetime(user_data.get("last_sign_in_at")),
-        "primary_email_address": email,
-        "primary_phone_number": phone,
-        "email_verified": email_verified,
-        "phone_number_verified": phone_verified,
-        "image_url": user_data.get("image_url"),
-    }
+    if not user:
+        return jsonify({"error": "User not found"}), 404
 
-    # init_user_records(g.user_id, user_record)
-    return jsonify({'user_id': g.user_id}), 200
+    from werkzeug.security import check_password_hash
+    if not check_password_hash(user.password_hash or "", current_password):
+        return jsonify({"error": "Current password is incorrect"}), 401
+
+    success = db_change_password(g.user_id, new_password)
+    if not success:
+        return jsonify({"error": "Failed to update password"}), 500
+
+    return jsonify({"message": "Password changed successfully"}), 200
+
+
+# ─────────────────────────────────────────────────────────
+# GET /api/auth/me  — check session / get current user info
+# ─────────────────────────────────────────────────────────
+@auth_bp.route('/me', methods=['GET'])
+@auth_required
+def me():
+    return jsonify({"user_id": g.user_id}), 200

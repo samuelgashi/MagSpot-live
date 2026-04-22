@@ -111,6 +111,13 @@ def run_migrations():
                 if not result.fetchone():
                     conn.execute(text(f'ALTER TABLE "Device_Groups" ADD COLUMN {col} {coltype}'))
 
+            result = conn.execute(text("""
+                SELECT column_name FROM information_schema.columns 
+                WHERE table_name = 'Users' AND column_name = 'password_hash'
+            """))
+            if not result.fetchone():
+                conn.execute(text('ALTER TABLE "Users" ADD COLUMN password_hash VARCHAR'))
+
             conn.execute(text("""
                 CREATE TABLE IF NOT EXISTS "Task_Templates" (
                     id SERIAL PRIMARY KEY,

@@ -1,15 +1,16 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
-import { KeyRound, Loader2, Play, PlugZap, Save, Settings, Square, Trash2, Unplug, X } from "lucide-react";
+import { KeyRound, Lock, LogOut, Loader2, Play, PlugZap, Save, Settings, Square, Trash2, Unplug, X } from "lucide-react";
 import { COMMON_TIMEZONES, getTodayDateKey, useAppTimezone } from "@/lib/timezone";
-import { checkMagSpotHealth, createMagSpotApiKey, deleteMagSpotApiKey, disconnectAllMagSpotDevices, getMagSpotTunnelStatus, listMagSpotApiKeys, MagSpotApiKey, startMagSpotScrcpyTunnel, stopMagSpotScrcpyTunnel } from "@/lib/magspotApi";
+import { checkMagSpotHealth, changeMagSpotPassword, createMagSpotApiKey, deleteMagSpotApiKey, disconnectAllMagSpotDevices, getMagSpotTunnelStatus, listMagSpotApiKeys, MagSpotApiKey, startMagSpotScrcpyTunnel, stopMagSpotScrcpyTunnel } from "@/lib/magspotApi";
+import { clearSessionToken } from "@/lib/auth";
 import { useLang } from "@/lib/lang";
 import { useToast } from "@/hooks/use-toast";
 
 const ACCENT = "#00d4e8";
 const ACCENT_RGB = "0,212,232";
 
-export function SettingsPanel({ onClose }: { onClose: () => void }) {
+export function SettingsPanel({ onClose, onLogout }: { onClose: () => void; onLogout?: () => void }) {
   const { t } = useLang();
   const { toast } = useToast();
   const { timeZone, setTimeZone, browserTimeZone } = useAppTimezone();
@@ -19,6 +20,9 @@ export function SettingsPanel({ onClose }: { onClose: () => void }) {
   const [tunnelUrl, setTunnelUrl] = useState("");
   const [apiKeys, setApiKeys] = useState<MagSpotApiKey[]>([]);
   const [busy, setBusy] = useState<string | null>(null);
+  const [currentPw, setCurrentPw] = useState("");
+  const [newPw, setNewPw] = useState("");
+  const [confirmPw, setConfirmPw] = useState("");
 
   const timezoneOptions = useMemo(() => {
     const merged = new Set([timeZone, browserTimeZone, ...COMMON_TIMEZONES]);
@@ -87,7 +91,12 @@ export function SettingsPanel({ onClose }: { onClose: () => void }) {
         </div>
 
         <div className="flex-1 min-h-0 overflow-auto p-5">
-          <div className="flex justify-end mb-4">
+          <div className="flex justify-end gap-2 mb-4">
+            <ActionButton icon={LogOut} label="Logout" danger onClick={() => {
+              clearSessionToken();
+              onClose();
+              onLogout?.();
+            }} />
             <ActionButton icon={Unplug} label={busy === "disconnect" ? "Disconnecting..." : "Disconnect All Devices"} danger disabled={busy === "disconnect"} onClick={() => withBusy("disconnect", async () => {
               if (!window.confirm("Disconnect all ADB devices?")) return;
               const result = await disconnectAllMagSpotDevices();
@@ -161,6 +170,26 @@ export function SettingsPanel({ onClose }: { onClose: () => void }) {
                   ))
                 )}
               </div>
+            </SettingsCard>
+
+            <SettingsCard title="Security" subtitle="Change your account password." icon={Lock}>
+              <Field label="Current Password">
+                <input value={currentPw} onChange={(e) => setCurrentPw(e.target.value)} type="password" placeholder="Current password" className="h-10 w-full rounded-lg px-3 text-sm outline-none text-white placeholder-white/25" style={inputStyle} />
+              </Field>
+              <Field label="New Password">
+                <input value={newPw} onChange={(e) => setNewPw(e.target.value)} type="password" placeholder="New password" className="h-10 w-full rounded-lg px-3 text-sm outline-none text-white placeholder-white/25" style={inputStyle} />
+              </Field>
+              <Field label="Confirm New Password">
+                <input value={confirmPw} onChange={(e) => setConfirmPw(e.target.value)} type="password" placeholder="Confirm new password" className="h-10 w-full rounded-lg px-3 text-sm outline-none text-white placeholder-white/25" style={inputStyle} />
+              </Field>
+              <ActionButton icon={busy === "changePw" ? Loader2 : Lock} label={busy === "changePw" ? "Changing…" : "Change Password"} disabled={busy === "changePw"} onClick={() => withBusy("changePw", async () => {
+                if (!currentPw || !newPw || !confirmPw) throw new Error("Please fill in all password fields.");
+                if (newPw !== confirmPw) throw new Error("New passwords do not match.");
+                if (newPw.length < 4) throw new Error("New password must be at least 4 characters.");
+                await changeMagSpotPassword(currentPw, newPw);
+                toast({ title: "Password changed successfully" });
+                setCurrentPw(""); setNewPw(""); setConfirmPw("");
+              })} grow />
             </SettingsCard>
 
             <SettingsCard title={t.settingsDateTimeTitle} subtitle={t.settingsTimezoneHint} icon={Settings}>

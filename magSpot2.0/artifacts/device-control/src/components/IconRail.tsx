@@ -11,6 +11,7 @@ interface IconRailProps {
   onToggleSidebar: () => void;
   activePanel: "network" | "adb" | "devices" | "schedule" | "tasks" | null;
   onTogglePanel: (panel: "network" | "adb" | "devices" | "schedule" | "tasks") => void;
+  onLogout?: () => void;
 }
 
 function CommandKeyIcon({ className, style }: { className?: string; style?: React.CSSProperties }) {
@@ -102,7 +103,7 @@ function RailButton({
   );
 }
 
-export function IconRail({ sidebarCollapsed, onToggleSidebar, activePanel, onTogglePanel }: IconRailProps) {
+export function IconRail({ sidebarCollapsed, onToggleSidebar, activePanel, onTogglePanel, onLogout }: IconRailProps) {
   const { lang, setLang, t } = useLang();
   const [settingsOpen, setSettingsOpen] = useState(false);
 
@@ -188,7 +189,7 @@ export function IconRail({ sidebarCollapsed, onToggleSidebar, activePanel, onTog
         active={settingsOpen}
         onClick={() => setSettingsOpen(true)}
       />
-      {settingsOpen && <SettingsPanel onClose={() => setSettingsOpen(false)} />}
+      {settingsOpen && <SettingsPanel onClose={() => setSettingsOpen(false)} onLogout={onLogout} />}
     </div>
   );
 }

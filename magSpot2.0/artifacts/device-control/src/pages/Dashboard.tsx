@@ -23,7 +23,7 @@ import { useLang } from "../lib/lang";
 
 const SCALE_WHEEL_THRESHOLD = 90;
 
-export function Dashboard() {
+export function Dashboard({ onLogout }: { onLogout?: () => void } = {}) {
   const { t } = useLang();
   const [selectedGroupId, setSelectedGroupId] = useState<number | null>(null);
   const [selectedDeviceIds, setSelectedDeviceIds] = useState<number[]>([]);
@@ -194,6 +194,7 @@ export function Dashboard() {
         onToggleSidebar={() => setSidebarCollapsed((v) => !v)}
         activePanel={activePanel}
         onTogglePanel={handleTogglePanel}
+        onLogout={onLogout}
       />
 
       {/* Collapsible sidebar */}

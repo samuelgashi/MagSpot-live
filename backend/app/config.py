@@ -26,6 +26,8 @@ class Config:
     TOKEN_EXPIRE_LIMIT = int(os.getenv("ADMIN_TOKEN_EXPIRE_LIMIT", 1))
     DEV_API_KEY = os.getenv("BACKEND_DEV_API_KEY")
     SECRET_KEY = os.getenv("FLASK_SECRET_KEY", "a_default_secret_key_if_not_set")
+    ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "admin")
+    SESSION_EXPIRE_DAYS = int(os.getenv("SESSION_EXPIRE_DAYS", 30))
 
     WS_SCRCPY_PATH = os.path.join(current_path, "backend", "ws-scrcpy")
     WS_SCRCPY_PORT = int(os.getenv("WS_SCRCPY_PORT", 5001))
@@ -46,10 +48,10 @@ class Config:
     # --- CORS Configuration ---
     CORS_ORIGINS = os.getenv("CORS_ORIGINS", "").split(",")
 
-    # --- Clerk Authentication ---
-    CLERK_SECRET_KEY = os.getenv("CLERK_SECRET_KEY")
-    CLERK_ISSUER = os.getenv("CLERK_ISSUER")
-    CLERK_JWKS_URL = os.getenv("CLERK_JWKS_URL")
+    # --- Clerk Authentication (legacy, kept for env compat) ---
+    CLERK_SECRET_KEY = os.getenv("CLERK_SECRET_KEY", "")
+    CLERK_ISSUER = os.getenv("CLERK_ISSUER", "")
+    CLERK_JWKS_URL = os.getenv("CLERK_JWKS_URL", "")
 
     # --- Paths ---
     BIN_FOLDER = os.path.join(current_path, "bin")
