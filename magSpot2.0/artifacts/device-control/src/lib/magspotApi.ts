@@ -165,9 +165,13 @@ export async function postMagSpotStopScrcpyServer(device: { id: number; ip?: str
   });
 }
 
+export type LiveControlPayload =
+  | { type: "tap";   x: number; y: number; streamW?: number; streamH?: number }
+  | { type: "swipe"; x: number; y: number; x2: number; y2: number; duration?: number; streamW?: number; streamH?: number };
+
 export async function postMagSpotLiveControl(
   device: { id: number; ip?: string; [key: string]: unknown },
-  payload: { type: "tap"; x: number; y: number } | { type: "swipe"; x: number; y: number; x2: number; y2: number; duration?: number },
+  payload: LiveControlPayload,
 ) {
   const response = await fetch(buildMagSpotApiUrl("/api/devices/live-control"), {
     method: "POST",
@@ -186,7 +190,7 @@ export async function postMagSpotLiveControl(
 
 export async function postMagSpotLiveControlToDevices(
   devices: Array<{ id: number; ip?: string; [key: string]: unknown }>,
-  payload: { type: "tap"; x: number; y: number } | { type: "swipe"; x: number; y: number; x2: number; y2: number; duration?: number },
+  payload: LiveControlPayload,
 ) {
   return Promise.all(devices.map((device) => postMagSpotLiveControl(device, payload)));
 }

@@ -1036,11 +1036,13 @@ function DeviceCard({
       const dx = end.x - start.x;
       const dy = end.y - start.y;
       const distance = Math.sqrt(dx * dx + dy * dy);
+      const sw = canvas?.width  || undefined;
+      const sh = canvas?.height || undefined;
       try {
         if (distance < 12) {
-          await postMagSpotLiveControlToDevices(otherDevices, { type: "tap", x: end.x, y: end.y });
+          await postMagSpotLiveControlToDevices(otherDevices, { type: "tap", x: end.x, y: end.y, streamW: sw, streamH: sh });
         } else {
-          await postMagSpotLiveControlToDevices(otherDevices, { type: "swipe", x: start.x, y: start.y, x2: end.x, y2: end.y, duration: Date.now() - start.at });
+          await postMagSpotLiveControlToDevices(otherDevices, { type: "swipe", x: start.x, y: start.y, x2: end.x, y2: end.y, duration: Date.now() - start.at, streamW: sw, streamH: sh });
         }
       } catch { /* ignore */ }
     }
@@ -1398,10 +1400,12 @@ export function DeviceFocusModal({
     const dx = end.x - start.x;
     const dy = end.y - start.y;
     const distance = Math.sqrt(dx * dx + dy * dy);
+    const sw = canvas?.width  || undefined;
+    const sh = canvas?.height || undefined;
     if (distance < 12) {
-      postMagSpotLiveControlToDevices(otherDevices, { type: "tap", x: end.x, y: end.y }).catch(() => {});
+      postMagSpotLiveControlToDevices(otherDevices, { type: "tap", x: end.x, y: end.y, streamW: sw, streamH: sh }).catch(() => {});
     } else {
-      postMagSpotLiveControlToDevices(otherDevices, { type: "swipe", x: start.x, y: start.y, x2: end.x, y2: end.y, duration: Date.now() - start.at }).catch(() => {});
+      postMagSpotLiveControlToDevices(otherDevices, { type: "swipe", x: start.x, y: start.y, x2: end.x, y2: end.y, duration: Date.now() - start.at, streamW: sw, streamH: sh }).catch(() => {});
     }
   }, [controlDevices, device.id, getScreenPoint, focusedStream, syncControlEnabled]);
 
@@ -1423,7 +1427,7 @@ export function DeviceFocusModal({
     const x2 = Math.max(0, Math.min(canvas.width, point.x - hSteps * SCROLL_PX));
     const y2 = Math.max(0, Math.min(canvas.height, point.y - vSteps * SCROLL_PX));
     if (x2 === point.x && y2 === point.y) return;
-    postMagSpotLiveControlToDevices(otherDevices, { type: "swipe", x: point.x, y: point.y, x2, y2, duration: 80 }).catch(() => {});
+    postMagSpotLiveControlToDevices(otherDevices, { type: "swipe", x: point.x, y: point.y, x2, y2, duration: 80, streamW: canvas.width, streamH: canvas.height }).catch(() => {});
   }, [controlDevices, device.id, getScreenPoint, focusedStream, syncControlEnabled]);
 
   const handleDragStart = useCallback((event: React.MouseEvent) => {
