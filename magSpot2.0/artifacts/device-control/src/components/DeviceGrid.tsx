@@ -233,25 +233,57 @@ function useMagSpotWsImageStream(device: Device, enabled: boolean, maxSize = 540
 // ws-scrcpy initial-handshake magic bytes: "scrcpy_initial"
 const SCRCPY_INITIAL_MAGIC = new TextEncoder().encode("scrcpy_initial");
 
-/** Build the 36-byte TYPE_CHANGE_STREAM_PARAMETERS control message */
-function buildVideoSettingsMsg(maxSize: number, bitRate: number, maxFps: number): ArrayBuffer {
-  const buf = new DataView(new ArrayBuffer(36));
+/**
+ * Build a TYPE_CHANGE_STREAM_PARAMETERS (101) control message.
+ *
+ * Wire layout (matches ws-scrcpy VideoSettings.toBuffer() + 1-byte type prefix):
+ *   1  type=101
+ *   4  bitrate      BE int32
+ *   4  maxFps       BE int32
+ *   1  iFrameInterval  int8
+ *   2  bounds width BE int16  (0 = unconstrained)
+ *   2  bounds height BE int16
+ *   2  crop left  BE int16
+ *   2  crop top   BE int16
+ *   2  crop right  BE int16
+ *   2  crop bottom BE int16
+ *   1  sendFrameMeta  int8
+ *   1  lockedVideoOrientation int8  (-1 = unlocked)
+ *   4  displayId   BE int32
+ *   4  codecOptionsLength BE int32 [+ N bytes UTF-8]
+ *   4  encoderNameLength  BE int32 [+ M bytes UTF-8]
+ */
+function buildVideoSettingsMsg(
+  maxSize: number,
+  bitRate: number,
+  maxFps: number,
+  iFrameInterval = 2,
+  encoderName = "",
+): ArrayBuffer {
+  const enc = encoderName ? new TextEncoder().encode(encoderName) : null;
+  const base = 36; // 1 type + 35 VideoSettings base
+  const buf = new DataView(new ArrayBuffer(base + (enc ? enc.length : 0)));
   let o = 0;
-  buf.setUint8(o, 101); o += 1;              // type = TYPE_CHANGE_STREAM_PARAMETERS
-  buf.setInt32(o, bitRate, false); o += 4;   // bitrate  (BE)
-  buf.setInt32(o, maxFps, false); o += 4;    // maxFps   (BE)
-  buf.setInt8(o, 10); o += 1;               // iFrameInterval
-  buf.setInt16(o, maxSize, false); o += 2;   // bounds width  (BE)
-  buf.setInt16(o, maxSize, false); o += 2;   // bounds height (BE)
-  buf.setInt16(o, 0, false); o += 2;         // crop left
-  buf.setInt16(o, 0, false); o += 2;         // crop top
-  buf.setInt16(o, 0, false); o += 2;         // crop right
-  buf.setInt16(o, 0, false); o += 2;         // crop bottom
-  buf.setInt8(o, 0); o += 1;               // sendFrameMeta = false
-  buf.setInt8(o, -1); o += 1;              // lockedVideoOrientation = -1
-  buf.setInt32(o, 0, false); o += 4;         // displayId = 0
-  buf.setInt32(o, 0, false); o += 4;         // codecOptionsLength = 0
-  buf.setInt32(o, 0, false);                 // encoderNameLength = 0
+  buf.setUint8(o, 101); o += 1;                          // TYPE_CHANGE_STREAM_PARAMETERS
+  buf.setInt32(o, bitRate, false); o += 4;               // bitrate
+  buf.setInt32(o, maxFps, false); o += 4;                // maxFps
+  buf.setInt8(o, iFrameInterval); o += 1;                // iFrameInterval
+  buf.setInt16(o, maxSize, false); o += 2;               // bounds width
+  buf.setInt16(o, maxSize, false); o += 2;               // bounds height
+  buf.setInt16(o, 0, false); o += 2;                     // crop left
+  buf.setInt16(o, 0, false); o += 2;                     // crop top
+  buf.setInt16(o, 0, false); o += 2;                     // crop right
+  buf.setInt16(o, 0, false); o += 2;                     // crop bottom
+  buf.setInt8(o, 0); o += 1;                             // sendFrameMeta = false
+  buf.setInt8(o, -1); o += 1;                            // lockedVideoOrientation = -1
+  buf.setInt32(o, 0, false); o += 4;                     // displayId = 0
+  buf.setInt32(o, 0, false); o += 4;                     // codecOptionsLength = 0
+  if (enc && enc.length > 0) {
+    buf.setInt32(o, enc.length, false); o += 4;          // encoderNameLength
+    enc.forEach((b, i) => buf.setUint8(o + i, b));
+  } else {
+    buf.setInt32(o, 0, false);                           // encoderNameLength = 0
+  }
   return buf.buffer;
 }
 
@@ -391,7 +423,9 @@ function useScrcpyDirectVideo(
   enabled: boolean,
   maxFps = 30,
   maxSize = 720,
-  bitRate = 4_000_000,
+  bitRate = 2_000_000,
+  iFrameInterval = 2,
+  encoderName = "",
 ) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const socketRef = useRef<WebSocket | null>(null);
@@ -529,7 +563,7 @@ function useScrcpyDirectVideo(
             if (SCRCPY_INITIAL_MAGIC.every((b, i) => magic[i] === b)) {
               // Send VideoSettings to configure resolution, bitrate, fps
               if (socket && socket.readyState === WebSocket.OPEN) {
-                socket.send(buildVideoSettingsMsg(maxSize, bitRate, maxFps));
+                socket.send(buildVideoSettingsMsg(maxSize, bitRate, maxFps, iFrameInterval, encoderName));
               }
               return;
             }
@@ -556,7 +590,7 @@ function useScrcpyDirectVideo(
       if (decoder && decoder.state !== "closed") decoder.close();
       setConnected(false);
     };
-  }, [device.id, device.ip, enabled, maxFps, maxSize, bitRate]);
+  }, [device.id, device.ip, enabled, maxFps, maxSize, bitRate, iFrameInterval, encoderName]);
 
   return { canvasRef, connected, failed, sendControl };
 }
@@ -1216,7 +1250,7 @@ export function DeviceFocusModal({
   const [registryRecords, setRegistryRecords] = useState(() => safeLoadRecords());
   const [actionState, setActionState] = useState<{ action: string; status: "running" | "ok" | "error" } | null>(null);
   const [screenError, setScreenError] = useState<string | null>(null);
-  const focusedStream = useScrcpyDirectVideo(device, true, 30, 720, 4_000_000);
+  const focusedStream = useScrcpyDirectVideo(device, true, 30, 720, 2_000_000);
   const [now, setNow] = useState(() => new Date());
   const [position, setPosition] = useState(() => ({
     x: Math.max(24, Math.round(window.innerWidth / 2 - 170)),
