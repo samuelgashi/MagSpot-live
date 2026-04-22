@@ -99,6 +99,25 @@ export async function postMagSpotDeviceAction(device: { id: number; ip?: string;
   return response.json().catch(() => null);
 }
 
+export async function postMagSpotSyncCommand(
+  devices: Array<{ id: number; ip?: string; [key: string]: unknown }>,
+  command: string,
+  args: string[],
+) {
+  if (devices.length === 0) return;
+  const deviceIds = devices.map(getMagSpotDeviceBackendId);
+  const response = await fetch(buildMagSpotApiUrl("/api/devices/command"), {
+    method: "POST",
+    headers: getMagSpotHeaders(),
+    body: JSON.stringify({ deviceIds, command, args }),
+  });
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(text || "Sync command failed");
+  }
+  return response.json().catch(() => null);
+}
+
 export function getMagSpotDeviceScreenshotUrl(device: { id: number; ip?: string; [key: string]: unknown }, nonce = Date.now()): string {
   const deviceId = encodeURIComponent(getMagSpotDeviceBackendId(device));
   return buildMagSpotApiUrl(`/api/devices/screenshot?deviceId=${deviceId}&t=${nonce}`);

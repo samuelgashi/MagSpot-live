@@ -8,7 +8,7 @@ import { DEVICE_REGISTRY_CHANGE_EVENT, DEVICE_REGISTRY_STORAGE_KEY, emptyRecord,
 import { CountryOption, countryFlag, matchCountries } from "@/lib/countries";
 import { loadSavedScheduleResult, SavedScheduleResult } from "@/lib/scheduleResults";
 import { getDevicePlanIndicator, getPlanIndicatorStyle } from "@/lib/devicePlanIndicator";
-import { postMagSpotStartScrcpyServer, getMagSpotDeviceWsImageStreamUrl, getMagSpotDeviceScrcpyStreamUrl, getMagSpotDeviceStreamUrl, postMagSpotDeviceAction, postMagSpotLiveControlToDevices } from "@/lib/magspotApi";
+import { postMagSpotStartScrcpyServer, getMagSpotDeviceWsImageStreamUrl, getMagSpotDeviceScrcpyStreamUrl, getMagSpotDeviceStreamUrl, postMagSpotDeviceAction, postMagSpotLiveControlToDevices, postMagSpotSyncCommand } from "@/lib/magspotApi";
 import {
   ContextMenu,
   ContextMenuContent,
@@ -1315,6 +1315,7 @@ export function DeviceFocusModal({
     if (event.button !== 0) return;
     event.preventDefault();
     event.stopPropagation();
+    const start = pointerRef.current;
     pointerRef.current = null;
     const end = getScreenPoint(event);
     const canvas = focusedStream.canvasRef.current;
@@ -1322,7 +1323,19 @@ export function DeviceFocusModal({
       focusedStream.sendControl(buildTouchMsg(A_UP, event.pointerId, end.x, end.y, canvas.width, canvas.height, 0, BTN_PRIMARY));
     }
     setScreenError(null);
-  }, [getScreenPoint, focusedStream]);
+    // Sync to other selected devices when Sync Control is on
+    if (!syncControlEnabled || !start || !end) return;
+    const otherDevices = controlDevices.filter((d) => d.id !== device.id);
+    if (otherDevices.length === 0) return;
+    const dx = end.x - start.x;
+    const dy = end.y - start.y;
+    const distance = Math.sqrt(dx * dx + dy * dy);
+    if (distance < 12) {
+      postMagSpotLiveControlToDevices(otherDevices, { type: "tap", x: end.x, y: end.y }).catch(() => {});
+    } else {
+      postMagSpotLiveControlToDevices(otherDevices, { type: "swipe", x: start.x, y: start.y, x2: end.x, y2: end.y, duration: Date.now() - start.at }).catch(() => {});
+    }
+  }, [controlDevices, device.id, getScreenPoint, focusedStream, syncControlEnabled]);
 
   const handleScreenWheel = useCallback((event: React.WheelEvent<HTMLDivElement>) => {
     event.preventDefault();
@@ -1331,8 +1344,19 @@ export function DeviceFocusModal({
     const canvas = focusedStream.canvasRef.current;
     if (!canvas || !canvas.width) return;
     const SCROLL_SCALE = 1 / 120;
-    focusedStream.sendControl(buildScrollMsg(point.x, point.y, canvas.width, canvas.height, Math.round(event.deltaX * SCROLL_SCALE), Math.round(event.deltaY * SCROLL_SCALE)));
-  }, [getScreenPoint, focusedStream]);
+    const hSteps = Math.round(event.deltaX * SCROLL_SCALE);
+    const vSteps = Math.round(event.deltaY * SCROLL_SCALE);
+    focusedStream.sendControl(buildScrollMsg(point.x, point.y, canvas.width, canvas.height, hSteps, vSteps));
+    // Sync to other selected devices as swipe (adb doesn't have a dedicated scroll API)
+    if (!syncControlEnabled) return;
+    const otherDevices = controlDevices.filter((d) => d.id !== device.id);
+    if (otherDevices.length === 0) return;
+    const SCROLL_PX = 200;
+    const x2 = Math.max(0, Math.min(canvas.width, point.x - hSteps * SCROLL_PX));
+    const y2 = Math.max(0, Math.min(canvas.height, point.y - vSteps * SCROLL_PX));
+    if (x2 === point.x && y2 === point.y) return;
+    postMagSpotLiveControlToDevices(otherDevices, { type: "swipe", x: point.x, y: point.y, x2, y2, duration: 80 }).catch(() => {});
+  }, [controlDevices, device.id, getScreenPoint, focusedStream, syncControlEnabled]);
 
   const handleDragStart = useCallback((event: React.MouseEvent) => {
     if (event.button !== 0) return;
@@ -1373,6 +1397,13 @@ export function DeviceFocusModal({
         repeatCounter.set(keycode, repeatCount);
       }
       focusedStream.sendControl(buildKeyMsg(KEY_DOWN, keycode, repeatCount, keyMetaState(event)));
+      // Sync first press (not repeat) to other devices via adb keyevent
+      if (syncControlEnabled && !event.repeat) {
+        const others = controlDevices.filter((d) => d.id !== device.id);
+        if (others.length > 0) {
+          postMagSpotSyncCommand(others, "shell", ["input", "keyevent", String(keycode)]).catch(() => {});
+        }
+      }
       event.preventDefault();
     };
 
@@ -1431,7 +1462,7 @@ export function DeviceFocusModal({
       window.removeEventListener("storage", onStorage);
       window.clearInterval(interval);
     };
-  }, [onClose, focusedStream.sendControl]);
+  }, [onClose, focusedStream.sendControl, syncControlEnabled, controlDevices, device.id]);
 
   return createPortal(
     <div className="fixed inset-0 z-[10000] pointer-events-none">
