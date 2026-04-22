@@ -754,6 +754,49 @@ def execute_command():
 
     return jsonify(results)
 
+
+# POST /api/devices/live-control - Send tap/swipe/scroll via adb input
+@api_keys_bp.route('/devices/live-control', methods=['POST'])
+def live_control():
+    data = request.get_json() or {}
+    device_id = data.get('deviceId')
+    action_type = data.get('type')
+
+    if not device_id or not isinstance(device_id, str):
+        return jsonify({'message': 'deviceId is required'}), 400
+
+    def parse_int(val):
+        try:
+            v = int(val)
+            return v if v >= 0 else None
+        except (TypeError, ValueError):
+            return None
+
+    x = parse_int(data.get('x'))
+    y = parse_int(data.get('y'))
+
+    if action_type == 'tap':
+        if x is None or y is None:
+            return jsonify({'message': 'x and y are required for tap'}), 400
+        result = adb_device_exec(device_id, f'shell input tap {x} {y}')
+        if not result['success']:
+            return jsonify({'message': result.get('error') or 'Tap failed'}), 500
+        return jsonify({'success': True})
+
+    if action_type == 'swipe':
+        x2 = parse_int(data.get('x2'))
+        y2 = parse_int(data.get('y2'))
+        if x is None or y is None or x2 is None or y2 is None:
+            return jsonify({'message': 'x, y, x2 and y2 are required for swipe'}), 400
+        duration = max(50, min(2000, int(data.get('duration') or 250)))
+        result = adb_device_exec(device_id, f'shell input swipe {x} {y} {x2} {y2} {duration}')
+        if not result['success']:
+            return jsonify({'message': result.get('error') or 'Swipe failed'}), 500
+        return jsonify({'success': True})
+
+    return jsonify({'message': 'type must be tap or swipe'}), 400
+
+
 # POST /api/scan - Scan subnet for devices
 @api_keys_bp.route('/scan', methods=['POST'])
 def scan_subnet():
