@@ -635,6 +635,11 @@ export async function customFetch<T = unknown>(
     }
   }
 
+  const sessionToken = getStorageValue("sessionToken");
+  if (sessionToken && !headers.has("authorization")) {
+    headers.set("authorization", `Bearer ${sessionToken}`);
+  }
+
   const apiKey = getStorageValue("apiKey");
   if (apiKey && !headers.has("x-api-key")) {
     headers.set("x-api-key", apiKey);

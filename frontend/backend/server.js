@@ -1007,12 +1007,12 @@ app.get('/api/devices', (req, res) => {
   res.json(Array.from(devices.values()));
 });
 
-app.get('/api/groups', (req, res) => {
+app.get('/api/groups', authMiddleware, (req, res) => {
   const groupList = Array.from(groups.values());
   res.json({ count: groupList.length, groups: groupList });
 });
 
-app.post('/api/groups', (req, res) => {
+app.post('/api/groups', authMiddleware, (req, res) => {
   const name = req.body?.name;
   if (!name) {
     return res.status(400).json({ error: 'Group name is required' });
@@ -1029,7 +1029,7 @@ app.post('/api/groups', (req, res) => {
   res.status(201).json({ message: 'Group created successfully', group_id: groupId, group });
 });
 
-app.put('/api/groups/:groupId', (req, res) => {
+app.put('/api/groups/:groupId', authMiddleware, (req, res) => {
   const group = groups.get(req.params.groupId);
   if (!group) {
     return res.status(404).json({ error: 'Group not found' });
@@ -1040,7 +1040,7 @@ app.put('/api/groups/:groupId', (req, res) => {
   res.json({ message: 'Group updated successfully', group });
 });
 
-app.delete('/api/groups/:groupId', (req, res) => {
+app.delete('/api/groups/:groupId', authMiddleware, (req, res) => {
   const groupId = req.params.groupId;
   if (!groups.delete(groupId)) {
     return res.status(404).json({ error: 'Group not found' });
@@ -1056,7 +1056,7 @@ app.delete('/api/groups/:groupId', (req, res) => {
   res.json({ message: 'Group deleted successfully' });
 });
 
-app.post('/api/groups/:groupId/devices', (req, res) => {
+app.post('/api/groups/:groupId/devices', authMiddleware, (req, res) => {
   const groupId = req.params.groupId;
   const group = groups.get(groupId);
   if (!group) {

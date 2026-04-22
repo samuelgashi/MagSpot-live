@@ -84,7 +84,7 @@ export function NetworkScanModal({ onClose }: NetworkScanModalProps) {
       onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
       <div
-        className="w-[520px] rounded-2xl flex flex-col overflow-hidden"
+        className="w-[680px] rounded-2xl flex flex-col overflow-hidden"
         style={{
           background: "rgba(10,14,24,0.97)",
           border: "1px solid rgba(255,255,255,0.1)",

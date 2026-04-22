@@ -505,7 +505,7 @@ function DeviceCard({
   const dashboardImageRef = useRef<HTMLImageElement>(null);
   const dashboardPointerRef = useRef<{ x: number; y: number; at: number } | null>(null);
   const dashboardRetryRef = useRef<number | null>(null);
-  const dashboardScrcpy = useMagSpotScrcpyVideo(device, true, compact ? 10 : 15, compact ? 360 : 540, compact ? 900_000 : 1_500_000);
+  const dashboardScrcpy = useMagSpotScrcpyVideo(device, smallScreenEnabled, compact ? 10 : 15, compact ? 360 : 540, compact ? 900_000 : 1_500_000);
   const registryRecord = safeLoadRecords()[String(device.id)];
   const deviceModel = registryRecord?.deviceModel?.trim() ?? "";
   const countryBadge = registryRecord?.vpnCountryCode
@@ -643,7 +643,7 @@ function DeviceCard({
                 className="font-mono leading-none truncate flex-1 text-center mx-1"
                 style={{ fontSize: "8px", color: "rgba(255,255,255,0.38)" }}
               >
-                {device.ip}
+                {deviceModel || device.ip}
               </span>
             )}
 
@@ -653,12 +653,12 @@ function DeviceCard({
                   className="font-mono leading-none px-1.5 py-0.5 rounded max-w-[76px] truncate"
                   style={{
                     fontSize: compact ? "9px" : "10px",
-                    color: "rgba(255,255,255,0.78)",
-                    background: "rgba(255,255,255,0.06)",
-                    border: "1px solid rgba(255,255,255,0.1)",
+                    color: "rgba(255,255,255,0.4)",
+                    background: "rgba(255,255,255,0.04)",
+                    border: "1px solid rgba(255,255,255,0.07)",
                   }}
                 >
-                  {deviceModel}
+                  {device.ip}
                 </span>
               )}
               {countryBadge && (
@@ -1065,7 +1065,7 @@ export function DeviceFocusModal({
                 {displayNum}
               </span>
               <span className="font-mono leading-none truncate" style={{ fontSize: "8px", color: "#7f8791" }}>
-                {device.ip}
+                {deviceModel || device.ip}
               </span>
             </div>
 
@@ -1075,12 +1075,12 @@ export function DeviceFocusModal({
                   className="font-mono leading-none px-1.5 py-0.5 rounded max-w-[112px] truncate"
                   style={{
                     fontSize: "10px",
-                    color: "rgba(255,255,255,0.78)",
-                    background: "rgba(255,255,255,0.06)",
-                    border: "1px solid rgba(255,255,255,0.1)",
+                    color: "rgba(255,255,255,0.4)",
+                    background: "rgba(255,255,255,0.04)",
+                    border: "1px solid rgba(255,255,255,0.07)",
                   }}
                 >
-                  {deviceModel}
+                  {device.ip}
                 </span>
               )}
               {countryBadge && (
