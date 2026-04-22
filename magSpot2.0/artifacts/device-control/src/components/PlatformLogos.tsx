@@ -143,6 +143,21 @@ export const ACTIVITY_META: Record<
   },
 };
 
+export const ICON_MAP: Record<string, (size: number) => React.ReactNode> = {
+  youtube_music: (s) => <YTMLogo size={s} />,
+  google: (s) => <GoogleLogo size={s} />,
+  youtube_shorts: (s) => <YouTubeShortsLogo size={s} />,
+  tiktok: (s) => <TikTokLogo size={s} />,
+};
+
+export function getIconLogo(icon: string, size: number): React.ReactNode {
+  const fn = ICON_MAP[icon];
+  if (fn) return fn(size);
+  return (
+    <span style={{ fontSize: size * 0.8, lineHeight: 1 }}>▶</span>
+  );
+}
+
 export function getSimulatedActivity(deviceId: number, status: string): ActivityType | null {
   if (status === "offline") return null;
   return ACTIVITY_LIST[deviceId % ACTIVITY_LIST.length];

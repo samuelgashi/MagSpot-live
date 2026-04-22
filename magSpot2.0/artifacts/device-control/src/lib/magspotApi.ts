@@ -305,3 +305,24 @@ export async function deleteMagSpotApiKey(keyId: string) {
   });
   return readJsonOrThrow<{ message?: string }>(response, "Failed to delete API key");
 }
+
+export interface MagSpotActivity {
+  key: string;
+  name: string;
+  endpoint: string;
+  method: string;
+  icon: string;
+}
+
+interface RawActivity {
+  name: string;
+  endpoint: string;
+  method: string;
+  icon: string;
+}
+
+export async function getMagSpotActivities(): Promise<MagSpotActivity[]> {
+  const response = await fetch(buildMagSpotApiUrl("/api/get_activities"), { headers: getMagSpotHeaders() });
+  const json = await readJsonOrThrow<{ data: Record<string, RawActivity> }>(response, "Failed to fetch activities");
+  return Object.entries(json.data).map(([key, val]) => ({ key, ...val }));
+}

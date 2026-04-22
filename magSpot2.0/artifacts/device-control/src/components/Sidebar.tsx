@@ -4,7 +4,8 @@ import { Group, Device } from "@workspace/api-client-react";
 import { Plus, Layers, Smartphone, RefreshCw, ChevronDown } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { CreateGroupModal } from "./CreateGroupModal";
-import { ACTIVITY_LIST, ACTIVITY_META, getSimulatedActivity } from "./PlatformLogos";
+import { ACTIVITY_LIST, ACTIVITY_META, getIconLogo, getSimulatedActivity } from "./PlatformLogos";
+import { getMagSpotActivities, MagSpotActivity } from "@/lib/magspotApi";
 import { useLang } from "../lib/lang";
 import { ArtistActivityModal, ActivityModalKind, ActivityParams } from "./ArtistActivityModal";
 import { FocusedDevice } from "./DeviceGrid";
@@ -68,6 +69,21 @@ export function Sidebar({
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [activityModal, setActivityModal] = useState<ActivityModalKind | null>(null);
   const [now, setNow] = useState(() => new Date());
+  const [apiActivities, setApiActivities] = useState<MagSpotActivity[]>([]);
+
+  const BACKEND_KEY_TO_MODAL: Record<string, ActivityModalKind> = {
+    stream_by_artist: "artist",
+    stream_by_library: "library",
+    stream_by_playlist: "playlist",
+    google_warmup: "google",
+    stream_youtube_shorts: "shorts",
+  };
+
+  useEffect(() => {
+    getMagSpotActivities()
+      .then(setApiActivities)
+      .catch(() => setApiActivities([]));
+  }, []);
 
   const handleActivityStart = (params: ActivityParams) => {
     console.log("[Activity]", params);
@@ -514,75 +530,114 @@ export function Sidebar({
         </div>
 
         <div className="flex flex-col gap-[3px]">
-          {ACTIVITY_LIST.map((activityType) => {
-            const meta = ACTIVITY_META[activityType];
-            const isGoogle = activityType === "google_search";
-            const isArtist = activityType === "ytm_artist";
-            const isAlbum = activityType === "ytm_album";
-            const isSingle = activityType === "ytm_single";
-            const isPlaylist = activityType === "ytm_playlist";
-            const isLibrary = activityType === "ytm_library";
-            const isShorts = activityType === "yt_shorts";
-            const isTikTok = activityType === "tiktok";
-            return (
-              <button
-                key={activityType}
-                onClick={
-                  isArtist
-                    ? () => setActivityModal("artist")
-                    : isGoogle
-                      ? () => setActivityModal("google")
-                      : isAlbum
-                        ? () => setActivityModal("album")
-                        : isSingle
-                          ? () => setActivityModal("single")
-                          : isPlaylist
-                            ? () => setActivityModal("playlist")
-                            : isLibrary
-                              ? () => setActivityModal("library")
-                              : isShorts
-                                ? () => setActivityModal("shorts")
-                                : isTikTok
-                                  ? () => setActivityModal("tiktok")
-                                  : undefined
-                }
-                className="flex items-center gap-3 px-2.5 py-1.5 rounded-lg w-full text-left transition-all"
-                style={{
-                  background: "rgba(255,255,255,0.04)",
-                  border: "1px solid rgba(255,255,255,0.07)",
-                  cursor: "pointer",
-                }}
-                onMouseEnter={(e) => {
-                  (e.currentTarget as HTMLElement).style.background = "rgba(255,255,255,0.08)";
-                  (e.currentTarget as HTMLElement).style.borderColor = `rgba(${ACCENT_RGB},0.3)`;
-                }}
-                onMouseLeave={(e) => {
-                  (e.currentTarget as HTMLElement).style.background = "rgba(255,255,255,0.04)";
-                  (e.currentTarget as HTMLElement).style.borderColor = "rgba(255,255,255,0.07)";
-                }}
-              >
-                <span className="shrink-0 flex items-center justify-center w-5 h-5">
-                  {meta.logo(18)}
-                </span>
-                <span
-                  className="leading-none"
-                  style={{
-                    fontSize: "11px",
-                    fontWeight: 500,
-                    color: "rgba(255,255,255,0.75)",
-                    letterSpacing: "0.01em",
-                  }}
-                >
-                  {meta.label}
-                  {meta.sublabel && (
-                    <span style={{ color: "rgba(255,255,255,0.4)", marginLeft: "4px" }}>
-                      {meta.sublabel}
+          {apiActivities.length > 0
+            ? apiActivities.map((activity) => {
+                const modalKind = BACKEND_KEY_TO_MODAL[activity.key] as ActivityModalKind | undefined;
+                return (
+                  <button
+                    key={activity.key}
+                    onClick={modalKind ? () => setActivityModal(modalKind) : undefined}
+                    className="flex items-center gap-3 px-2.5 py-1.5 rounded-lg w-full text-left transition-all"
+                    style={{
+                      background: "rgba(255,255,255,0.04)",
+                      border: "1px solid rgba(255,255,255,0.07)",
+                      cursor: modalKind ? "pointer" : "default",
+                    }}
+                    onMouseEnter={(e) => {
+                      (e.currentTarget as HTMLElement).style.background = "rgba(255,255,255,0.08)";
+                      (e.currentTarget as HTMLElement).style.borderColor = `rgba(${ACCENT_RGB},0.3)`;
+                    }}
+                    onMouseLeave={(e) => {
+                      (e.currentTarget as HTMLElement).style.background = "rgba(255,255,255,0.04)";
+                      (e.currentTarget as HTMLElement).style.borderColor = "rgba(255,255,255,0.07)";
+                    }}
+                  >
+                    <span className="shrink-0 flex items-center justify-center w-5 h-5">
+                      {getIconLogo(activity.icon, 18)}
                     </span>
-                  )}
-                </span>
-              </button>
-            );
-          })}
+                    <span
+                      className="leading-none"
+                      style={{
+                        fontSize: "11px",
+                        fontWeight: 500,
+                        color: "rgba(255,255,255,0.75)",
+                        letterSpacing: "0.01em",
+                      }}
+                    >
+                      {activity.name}
+                    </span>
+                  </button>
+                );
+              })
+            : ACTIVITY_LIST.map((activityType) => {
+                const meta = ACTIVITY_META[activityType];
+                const isGoogle = activityType === "google_search";
+                const isArtist = activityType === "ytm_artist";
+                const isAlbum = activityType === "ytm_album";
+                const isSingle = activityType === "ytm_single";
+                const isPlaylist = activityType === "ytm_playlist";
+                const isLibrary = activityType === "ytm_library";
+                const isShorts = activityType === "yt_shorts";
+                const isTikTok = activityType === "tiktok";
+                return (
+                  <button
+                    key={activityType}
+                    onClick={
+                      isArtist
+                        ? () => setActivityModal("artist")
+                        : isGoogle
+                          ? () => setActivityModal("google")
+                          : isAlbum
+                            ? () => setActivityModal("album")
+                            : isSingle
+                              ? () => setActivityModal("single")
+                              : isPlaylist
+                                ? () => setActivityModal("playlist")
+                                : isLibrary
+                                  ? () => setActivityModal("library")
+                                  : isShorts
+                                    ? () => setActivityModal("shorts")
+                                    : isTikTok
+                                      ? () => setActivityModal("tiktok")
+                                      : undefined
+                    }
+                    className="flex items-center gap-3 px-2.5 py-1.5 rounded-lg w-full text-left transition-all"
+                    style={{
+                      background: "rgba(255,255,255,0.04)",
+                      border: "1px solid rgba(255,255,255,0.07)",
+                      cursor: "pointer",
+                    }}
+                    onMouseEnter={(e) => {
+                      (e.currentTarget as HTMLElement).style.background = "rgba(255,255,255,0.08)";
+                      (e.currentTarget as HTMLElement).style.borderColor = `rgba(${ACCENT_RGB},0.3)`;
+                    }}
+                    onMouseLeave={(e) => {
+                      (e.currentTarget as HTMLElement).style.background = "rgba(255,255,255,0.04)";
+                      (e.currentTarget as HTMLElement).style.borderColor = "rgba(255,255,255,0.07)";
+                    }}
+                  >
+                    <span className="shrink-0 flex items-center justify-center w-5 h-5">
+                      {meta.logo(18)}
+                    </span>
+                    <span
+                      className="leading-none"
+                      style={{
+                        fontSize: "11px",
+                        fontWeight: 500,
+                        color: "rgba(255,255,255,0.75)",
+                        letterSpacing: "0.01em",
+                      }}
+                    >
+                      {meta.label}
+                      {meta.sublabel && (
+                        <span style={{ color: "rgba(255,255,255,0.4)", marginLeft: "4px" }}>
+                          {meta.sublabel}
+                        </span>
+                      )}
+                    </span>
+                  </button>
+                );
+              })}
         </div>
       </div>
 

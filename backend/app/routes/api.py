@@ -35,6 +35,7 @@ ACTIVITIES_ROUTES = {
         "name": "Stream By Artist",
         "endpoint": "/yt_music/stream_by_artist",
         "method": "POST",
+        "icon": "youtube_music",
         "args": dict_to_indexed_list({
             "artist_name": {
                 "description": "Provde Artist Name To Stream...",
@@ -140,6 +141,7 @@ ACTIVITIES_ROUTES = {
         "name": "Stream By Library",
         "endpoint": "/yt_music/stream_by_library",
         "method": "POST",
+        "icon": "youtube_music",
         "args": dict_to_indexed_list({
             "playlist_name": {
                 "description": "Provde Playlist Name To Stream...",
@@ -245,6 +247,7 @@ ACTIVITIES_ROUTES = {
         "name": "Stream By Playlist",
         "endpoint": "/yt_music/stream_by_playlist",
         "method": "POST",
+        "icon": "youtube_music",
         "args": dict_to_indexed_list({
             "playlist_name": {
                 "description": "Provde Playlist Name To Stream...",
@@ -338,6 +341,7 @@ ACTIVITIES_ROUTES = {
         "name": "Google Warm-UP",
         "endpoint": "/google_chrome/google_warmup",
         "method": "POST",
+        "icon": "google",
         "args": dict_to_indexed_list({
             "search_keywords_sheet_url" : {
                 "description": "Search Keyword Sheet For Devices! Provide Google Sheet URL...",
@@ -413,6 +417,7 @@ ACTIVITIES_ROUTES = {
         "name": "Stream YouTube Shorts",
         "endpoint": "/youtube_api/stream_youtube_shorts",
         "method": "POST",
+        "icon": "youtube_shorts",
         "args": dict_to_indexed_list({
             "max_play_hours": {
                 "description": "Maximum Play Hours For Each Device...",
