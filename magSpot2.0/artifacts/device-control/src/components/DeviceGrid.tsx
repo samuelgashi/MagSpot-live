@@ -68,7 +68,7 @@ function useMagSpotScrcpyVideo(device: Device, enabled: boolean, maxFps: number,
     let cancelled = false;
     let socket: WebSocket | null = null;
     let decoder: VideoDecoder | null = null;
-    let fallbackTimer: ReturnType<typeof window.setTimeout> | null = null;
+    let fallbackTimer: number | null = null;
     let configured = false;
     let gotKeyFrame = false;
     let timestamp = 0;
@@ -215,7 +215,7 @@ export function DeviceGrid({
 
   const dragStartRef = useRef<{ x: number; y: number; device: Device; displayNum: number } | null>(null);
   const isDragActiveRef = useRef(false);
-  const pendingBarClickRef = useRef<{ deviceId: number; timer: ReturnType<typeof window.setTimeout> } | null>(null);
+  const pendingBarClickRef = useRef<{ deviceId: number; timer: number } | null>(null);
 
   // Keep latest callbacks and state in refs — document listeners never need re-attachment
   const onSetSelectionRef = useRef(onSetSelection);
@@ -504,7 +504,7 @@ function DeviceCard({
   const [controlError, setControlError] = useState<string | null>(null);
   const dashboardImageRef = useRef<HTMLImageElement>(null);
   const dashboardPointerRef = useRef<{ x: number; y: number; at: number } | null>(null);
-  const dashboardRetryRef = useRef<ReturnType<typeof window.setTimeout> | null>(null);
+  const dashboardRetryRef = useRef<number | null>(null);
   const dashboardScrcpy = useMagSpotScrcpyVideo(device, smallScreenEnabled, compact ? 10 : 15, compact ? 360 : 540, compact ? 900_000 : 1_500_000);
   const registryRecord = safeLoadRecords()[String(device.id)];
   const deviceModel = registryRecord?.deviceModel?.trim() ?? "";
@@ -834,7 +834,7 @@ export function DeviceFocusModal({
   const resizeRef = useRef<{ startX: number; startY: number; originWidth: number; originHeight: number } | null>(null);
   const screenImageRef = useRef<HTMLImageElement>(null);
   const pointerRef = useRef<{ x: number; y: number; at: number } | null>(null);
-  const streamRetryRef = useRef<ReturnType<typeof window.setTimeout> | null>(null);
+  const streamRetryRef = useRef<number | null>(null);
   const savedSchedule = loadSavedScheduleResult();
   const planIndicator = getPlanIndicatorStyle(getDevicePlanIndicator(device.id, savedSchedule, now));
   const registryRecord = registryRecords[String(device.id)] ?? emptyRecord(String(displayNum).padStart(3, "0"));
@@ -1257,7 +1257,7 @@ function DeviceInfoPanel({
   const [draft, setDraft] = useState<DeviceRegistryRecord>(record);
   const [deviceModels, setDeviceModels] = useState(() => safeLoadDeviceModels());
   const [copiedField, setCopiedField] = useState<string | null>(null);
-  const copiedTimerRef = useRef<ReturnType<typeof window.setTimeout> | null>(null);
+  const copiedTimerRef = useRef<number | null>(null);
 
   useEffect(() => {
     if (!editing) setDraft(record);

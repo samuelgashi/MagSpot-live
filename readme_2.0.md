@@ -214,26 +214,45 @@ http://localhost:4723/wd/hub
 
 ## Run MagSpot 2.0 in development
 
-The MagSpot 2.0 frontend uses pnpm and requires `PORT` and `BASE_PATH`.
+To run the project locally, start the MagSpot Python backend and the MagSpot 2.0 frontend separately.
 
-Install dependencies:
+### 1. Start the MagSpot backend
+
+The backend is the Python Flask app in `backend/`.
+
+Install Python dependencies:
+
+```sh
+pip install -r backend/requirements.txt
+```
+
+Start the backend:
+
+```sh
+python3 backend/wsgi.py
+```
+
+By default it listens on `BACKEND_PORT` (e.g. `9786`). Confirm it is running:
+
+```sh
+curl http://localhost:9786/api/health_check
+```
+
+### 2. Install MagSpot 2.0 frontend dependencies
+
+The frontend is in `magSpot2.0/artifacts/device-control/` and uses pnpm.
 
 ```sh
 pnpm --dir magSpot2.0 install
 ```
 
-Run MagSpot 2.0 frontend:
+### 3. Start the MagSpot 2.0 frontend
+
+Point `API_PROXY_TARGET` at the backend address you started above:
 
 ```sh
-PORT=5173 BASE_PATH=/ API_PROXY_TARGET=http://127.0.0.1:3001 \
+PORT=5173 BASE_PATH=/ API_PROXY_TARGET=http://127.0.0.1:9786 \
 pnpm --dir magSpot2.0 --filter @workspace/device-control run dev
-```
-
-Run the lightweight compatibility API used in Replit:
-
-```sh
-cd frontend/backend
-PORT=3001 npm start
 ```
 
 Open:
@@ -241,6 +260,20 @@ Open:
 ```text
 http://localhost:5173
 ```
+
+The Vite dev server proxies every `/api` request to `http://127.0.0.1:9786`, so the frontend talks directly to the real MagSpot backend.
+
+### Build only the MagSpot 2.0 frontend
+
+To run a production build from inside the `magSpot2.0/` directory:
+
+```sh
+cd magSpot2.0
+pnpm install
+pnpm --filter @workspace/device-control run build
+```
+
+Output is written to `magSpot2.0/artifacts/device-control/dist/public/`.
 
 ## Current Replit single-command development setup
 

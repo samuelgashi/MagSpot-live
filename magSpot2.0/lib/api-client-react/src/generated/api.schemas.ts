@@ -30,6 +30,7 @@ export interface Device {
   sheetUrl?: string | null;
   lastSeen?: string;
   createdAt: string;
+  [key: string]: unknown;
 }
 
 export interface CreateDeviceBody {
