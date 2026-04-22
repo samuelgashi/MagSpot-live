@@ -902,7 +902,7 @@ function DeviceCard({
 
   const contextCount = selectedDeviceIds.length;
 
-  const getDashboardPoint = useCallback((event: React.PointerEvent | PointerEvent, clamp = false) => {
+  const getDashboardPoint = useCallback((event: React.PointerEvent | PointerEvent) => {
     const canvas = dashboardStream.canvasRef.current;
     if (!canvas || !canvas.width || !canvas.height) return null;
     const rect = canvas.getBoundingClientRect();
@@ -921,10 +921,10 @@ function DeviceCard({
     }
     const localX = event.clientX - rect.left - offsetX;
     const localY = event.clientY - rect.top - offsetY;
-    if (!clamp && (localX < 0 || localY < 0 || localX > drawWidth || localY > drawHeight)) return null;
+    if (localX < 0 || localY < 0 || localX > drawWidth || localY > drawHeight) return null;
     return {
-      x: Math.round((Math.max(0, Math.min(drawWidth, localX)) / drawWidth) * canvas.width),
-      y: Math.round((Math.max(0, Math.min(drawHeight, localY)) / drawHeight) * canvas.height),
+      x: Math.round((localX / drawWidth) * canvas.width),
+      y: Math.round((localY / drawHeight) * canvas.height),
     };
   }, [dashboardStream.canvasRef]);
 
@@ -943,7 +943,7 @@ function DeviceCard({
 
   const handleDashboardPointerMove = useCallback((event: React.PointerEvent<HTMLDivElement>) => {
     if (!smallScreenEnabled || !dashboardPointerRef.current) return;
-    const point = getDashboardPoint(event, true);
+    const point = getDashboardPoint(event);
     if (!point) return;
     const canvas = dashboardStream.canvasRef.current;
     if (!canvas || !canvas.width) return;
@@ -956,7 +956,7 @@ function DeviceCard({
     event.stopPropagation();
     const start = dashboardPointerRef.current;
     dashboardPointerRef.current = null;
-    const end = getDashboardPoint(event, true);
+    const end = getDashboardPoint(event);
     const canvas = dashboardStream.canvasRef.current;
     if (end && canvas && canvas.width) {
       dashboardStream.sendControl(buildTouchMsg(A_UP, event.pointerId, end.x, end.y, canvas.width, canvas.height, 0, BTN_PRIMARY));
@@ -1263,7 +1263,7 @@ export function DeviceFocusModal({
     }
   }, [device.id]);
 
-  const getScreenPoint = useCallback((event: React.PointerEvent | PointerEvent, clamp = false) => {
+  const getScreenPoint = useCallback((event: React.PointerEvent | PointerEvent) => {
     const canvas = focusedStream.canvasRef.current;
     if (!canvas || !canvas.width || !canvas.height) return null;
     const rect = canvas.getBoundingClientRect();
@@ -1282,10 +1282,10 @@ export function DeviceFocusModal({
     }
     const localX = event.clientX - rect.left - offsetX;
     const localY = event.clientY - rect.top - offsetY;
-    if (!clamp && (localX < 0 || localY < 0 || localX > drawWidth || localY > drawHeight)) return null;
+    if (localX < 0 || localY < 0 || localX > drawWidth || localY > drawHeight) return null;
     return {
-      x: Math.round((Math.max(0, Math.min(drawWidth, localX)) / drawWidth) * canvas.width),
-      y: Math.round((Math.max(0, Math.min(drawHeight, localY)) / drawHeight) * canvas.height),
+      x: Math.round((localX / drawWidth) * canvas.width),
+      y: Math.round((localY / drawHeight) * canvas.height),
     };
   }, [focusedStream.canvasRef]);
 
