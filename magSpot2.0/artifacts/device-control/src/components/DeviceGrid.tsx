@@ -287,6 +287,38 @@ function buildVideoSettingsMsg(
   return buf.buffer;
 }
 
+// ── scrcpy stream quality presets ────────────────────────────────────────────
+//
+// Encoder names — pick the one that matches your device SoC.
+// Scrcpy falls back to the auto-selected encoder if the name is not found.
+//
+//  Qualcomm Snapdragon (S8/S9+/S10 US, Z Flip/Fold US):
+//    "OMX.qcom.video.encoder.avc"        ← current choice (HW, very fast)
+//    "c2.qti.avc.encoder"                ← Codec2 Qualcomm (Android 10+)
+//
+//  Samsung Exynos (S8/S9+/S10 EU/KR/global):
+//    "OMX.Exynos.AVC.Encoder"            ← Exynos HW encoder
+//    "c2.exynos.avc.encoder"             ← Codec2 Exynos (Android 10+)
+//
+//  MediaTek Dimensity / Helio:
+//    "OMX.MTK.VIDEO.ENCODER.AVC"
+//    "c2.mtk.avc.encoder"
+//
+//  Generic software fallback (any device, highest CPU cost, worst latency):
+//    "OMX.google.h264.encoder"
+//    "c2.android.avc.encoder"
+//
+//  Leave empty ("") to let the device auto-select the best available encoder.
+//
+const SCRCPY_ENCODER = "OMX.qcom.video.encoder.avc";
+//
+// Stream quality — tweak here to trade resolution/bitrate for latency.
+// At 300 devices these numbers matter: 420p @ 1 Mbps keeps bandwidth tight.
+const SCRCPY_MAX_SIZE      = 420;        // max dimension in px  (420 ≈ 420p)
+const SCRCPY_BITRATE       = 1_000_000; // bits/s  — 1 Mbps is plenty at 420p
+const SCRCPY_FPS           = 30;
+const SCRCPY_IFRAME_SECS   = 1;         // I-frame every 1 s → fast decoder lock-on
+
 // ── Android motion / key constants (from scrcpy ControlMessage + KeyEvent) ────
 const A_DOWN   = 0;   // MotionEvent ACTION_DOWN
 const A_UP     = 1;   // MotionEvent ACTION_UP
@@ -927,7 +959,7 @@ function DeviceCard({
   const planIndicator = getPlanIndicatorStyle(getDevicePlanIndicator(device.id, savedSchedule, now));
   const [controlError, setControlError] = useState<string | null>(null);
   const dashboardPointerRef = useRef<{ x: number; y: number; at: number } | null>(null);
-  const dashboardStream = useScrcpyDirectVideo(device, true, 30, compact ? 360 : 540, 2_000_000);
+  const dashboardStream = useScrcpyDirectVideo(device, true, SCRCPY_FPS, SCRCPY_MAX_SIZE, SCRCPY_BITRATE, SCRCPY_IFRAME_SECS, SCRCPY_ENCODER);
   const registryRecord = safeLoadRecords()[String(device.id)];
   const deviceModel = registryRecord?.deviceModel?.trim() ?? "";
   const countryBadge = registryRecord?.vpnCountryCode
@@ -1250,7 +1282,7 @@ export function DeviceFocusModal({
   const [registryRecords, setRegistryRecords] = useState(() => safeLoadRecords());
   const [actionState, setActionState] = useState<{ action: string; status: "running" | "ok" | "error" } | null>(null);
   const [screenError, setScreenError] = useState<string | null>(null);
-  const focusedStream = useScrcpyDirectVideo(device, true, 30, 720, 2_000_000);
+  const focusedStream = useScrcpyDirectVideo(device, true, SCRCPY_FPS, SCRCPY_MAX_SIZE, SCRCPY_BITRATE, SCRCPY_IFRAME_SECS, SCRCPY_ENCODER);
   const [now, setNow] = useState(() => new Date());
   const [position, setPosition] = useState(() => ({
     x: Math.max(24, Math.round(window.innerWidth / 2 - 170)),
