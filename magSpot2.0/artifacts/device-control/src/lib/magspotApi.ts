@@ -117,6 +117,14 @@ export function getMagSpotDeviceScrcpyStreamUrl(device: { id: number; ip?: strin
   return url.toString();
 }
 
+export function getMagSpotDeviceWsImageStreamUrl(device: { id: number; ip?: string; [key: string]: unknown }, maxSize = 540, quality = 70): string {
+  const deviceId = encodeURIComponent(getMagSpotDeviceBackendId(device));
+  const apiUrl = buildMagSpotApiUrl(`/api/devices/ws-image-stream?deviceId=${deviceId}&maxSize=${maxSize}&quality=${quality}`);
+  const url = new URL(apiUrl, window.location.origin);
+  url.protocol = url.protocol === "https:" ? "wss:" : "ws:";
+  return url.toString();
+}
+
 export async function postMagSpotLiveControl(
   device: { id: number; ip?: string; [key: string]: unknown },
   payload: { type: "tap"; x: number; y: number } | { type: "swipe"; x: number; y: number; x2: number; y2: number; duration?: number },

@@ -7,8 +7,10 @@ from .routes import register_blueprints
 from .repositories.users_repo import init_admin_user
 from .db.session import Base, engine, ensure_database_exists, run_migrations
 from .models import *
+import io
 import os
 import subprocess
+from PIL import Image
 
 from dotenv import load_dotenv
 load_dotenv()
@@ -124,6 +126,41 @@ def create_app():
                     proc.kill()
                 except Exception:
                     pass
+
+    @sock.route('/api/devices/ws-image-stream')
+    def ws_image_stream(ws):
+        from flask import request as flask_request
+        device_id = flask_request.args.get('deviceId', '')
+        max_size = int(flask_request.args.get('maxSize', 540))
+        quality = int(flask_request.args.get('quality', 70))
+
+        if not device_id:
+            return
+
+        while True:
+            try:
+                result = subprocess.run(
+                    [Config.ADB_PATH, '-s', device_id, 'exec-out', 'screencap', '-p'],
+                    capture_output=True,
+                    timeout=10,
+                )
+                if result.returncode != 0 or not result.stdout:
+                    break
+
+                img = Image.open(io.BytesIO(result.stdout))
+
+                # Scale down while keeping aspect ratio
+                w, h = img.size
+                if w > max_size or h > max_size:
+                    ratio = min(max_size / w, max_size / h)
+                    img = img.resize((int(w * ratio), int(h * ratio)), Image.BILINEAR)
+
+                buf = io.BytesIO()
+                img.convert('RGB').save(buf, format='JPEG', quality=quality, optimize=False)
+                ws.send(buf.getvalue())
+
+            except Exception:
+                break
 
     ensure_database_exists()
     Base.metadata.create_all(bind=engine)

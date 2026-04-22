@@ -8,7 +8,7 @@ import { DEVICE_REGISTRY_CHANGE_EVENT, DEVICE_REGISTRY_STORAGE_KEY, emptyRecord,
 import { CountryOption, countryFlag, matchCountries } from "@/lib/countries";
 import { loadSavedScheduleResult, SavedScheduleResult } from "@/lib/scheduleResults";
 import { getDevicePlanIndicator, getPlanIndicatorStyle } from "@/lib/devicePlanIndicator";
-import { getMagSpotDeviceScrcpyStreamUrl, getMagSpotDeviceStreamUrl, postMagSpotDeviceAction, postMagSpotLiveControlToDevices } from "@/lib/magspotApi";
+import { getMagSpotDeviceWsImageStreamUrl, getMagSpotDeviceScrcpyStreamUrl, getMagSpotDeviceStreamUrl, postMagSpotDeviceAction, postMagSpotLiveControlToDevices } from "@/lib/magspotApi";
 import {
   ContextMenu,
   ContextMenuContent,
@@ -165,6 +165,66 @@ function useMagSpotScrcpyVideo(device: Device, enabled: boolean, maxFps: number,
       setConnected(false);
     };
   }, [device.id, device.ip, enabled, maxFps, maxSize, bitRate]);
+
+  return { canvasRef, connected, failed };
+}
+
+function useMagSpotWsImageStream(device: Device, enabled: boolean, maxSize = 540, quality = 70) {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [connected, setConnected] = useState(false);
+  const [failed, setFailed] = useState(false);
+
+  useEffect(() => {
+    if (!enabled) {
+      setConnected(false);
+      setFailed(false);
+      return;
+    }
+
+    let cancelled = false;
+    let socket: WebSocket | null = null;
+    let hasFrame = false;
+    let fallbackTimer: number | null = null;
+
+    socket = new WebSocket(getMagSpotDeviceWsImageStreamUrl(device, maxSize, quality));
+    socket.binaryType = "arraybuffer";
+
+    fallbackTimer = window.setTimeout(() => {
+      if (!cancelled && !hasFrame) setFailed(true);
+    }, 8000);
+
+    socket.onmessage = async (event) => {
+      if (cancelled || !canvasRef.current || !(event.data instanceof ArrayBuffer)) return;
+      try {
+        const blob = new Blob([event.data], { type: "image/jpeg" });
+        const bitmap = await createImageBitmap(blob);
+        if (cancelled || !canvasRef.current) { bitmap.close(); return; }
+        const ctx = canvasRef.current.getContext("2d", { alpha: false });
+        if (!ctx) { bitmap.close(); return; }
+        if (canvasRef.current.width !== bitmap.width || canvasRef.current.height !== bitmap.height) {
+          canvasRef.current.width = bitmap.width;
+          canvasRef.current.height = bitmap.height;
+        }
+        ctx.drawImage(bitmap, 0, 0);
+        bitmap.close();
+        if (!hasFrame) {
+          hasFrame = true;
+          if (fallbackTimer !== null) { window.clearTimeout(fallbackTimer); fallbackTimer = null; }
+          setConnected(true);
+          setFailed(false);
+        }
+      } catch { /* ignore decode errors */ }
+    };
+    socket.onerror = () => { if (!cancelled) setFailed(true); };
+    socket.onclose = () => { if (!cancelled) { setConnected(false); setFailed(true); } };
+
+    return () => {
+      cancelled = true;
+      if (fallbackTimer !== null) window.clearTimeout(fallbackTimer);
+      if (socket) socket.close();
+      setConnected(false);
+    };
+  }, [device.id, device.ip, enabled, maxSize, quality]);
 
   return { canvasRef, connected, failed };
 }
@@ -499,13 +559,9 @@ function DeviceCard({
   t: ReturnType<typeof useLang>["t"];
 }) {
   const planIndicator = getPlanIndicatorStyle(getDevicePlanIndicator(device.id, savedSchedule, now));
-  const [dashboardStreamSrc, setDashboardStreamSrc] = useState(() => getMagSpotDeviceStreamUrl(device, compact ? 1 : 2));
-  const [dashboardStreamError, setDashboardStreamError] = useState(false);
   const [controlError, setControlError] = useState<string | null>(null);
-  const dashboardImageRef = useRef<HTMLImageElement>(null);
   const dashboardPointerRef = useRef<{ x: number; y: number; at: number } | null>(null);
-  const dashboardRetryRef = useRef<number | null>(null);
-  const dashboardScrcpy = useMagSpotScrcpyVideo(device, smallScreenEnabled, compact ? 10 : 15, compact ? 360 : 540, compact ? 900_000 : 1_500_000);
+  const dashboardStream = useMagSpotWsImageStream(device, true, compact ? 360 : 540, 70);
   const registryRecord = safeLoadRecords()[String(device.id)];
   const deviceModel = registryRecord?.deviceModel?.trim() ?? "";
   const countryBadge = registryRecord?.vpnCountryCode
@@ -514,19 +570,11 @@ function DeviceCard({
 
   const contextCount = selectedDeviceIds.length;
 
-  useEffect(() => {
-    setDashboardStreamSrc(getMagSpotDeviceStreamUrl(device, compact ? 1 : 2));
-    setDashboardStreamError(false);
-    return () => {
-      if (dashboardRetryRef.current) window.clearTimeout(dashboardRetryRef.current);
-    };
-  }, [device.id, compact]);
-
   const getDashboardPoint = useCallback((event: React.PointerEvent | PointerEvent) => {
-    const image = dashboardImageRef.current;
-    if (!image || !image.naturalWidth || !image.naturalHeight) return null;
-    const rect = image.getBoundingClientRect();
-    const naturalAspect = image.naturalWidth / image.naturalHeight;
+    const canvas = dashboardStream.canvasRef.current;
+    if (!canvas || !canvas.width || !canvas.height) return null;
+    const rect = canvas.getBoundingClientRect();
+    const naturalAspect = canvas.width / canvas.height;
     const renderedAspect = rect.width / rect.height;
     let drawWidth = rect.width;
     let drawHeight = rect.height;
@@ -543,10 +591,10 @@ function DeviceCard({
     const localY = event.clientY - rect.top - offsetY;
     if (localX < 0 || localY < 0 || localX > drawWidth || localY > drawHeight) return null;
     return {
-      x: Math.round((localX / drawWidth) * image.naturalWidth),
-      y: Math.round((localY / drawHeight) * image.naturalHeight),
+      x: Math.round((localX / drawWidth) * canvas.width),
+      y: Math.round((localY / drawHeight) * canvas.height),
     };
-  }, []);
+  }, [dashboardStream.canvasRef]);
 
   const handleDashboardPointerDown = useCallback((event: React.PointerEvent<HTMLDivElement>) => {
     if (!smallScreenEnabled || event.button !== 0) return;
@@ -689,29 +737,20 @@ function DeviceCard({
             className="flex-1 relative overflow-hidden"
             style={{ cursor: smallScreenEnabled ? "crosshair" : "default", background: "#05070c", touchAction: smallScreenEnabled ? "none" : "auto" }}
           >
-            {dashboardStreamSrc ? (
+            {true ? (
               <>
-                <img
-                  ref={dashboardImageRef}
-                  src={dashboardStreamSrc}
-                  alt={`Live screen for ${device.ip}`}
-                  draggable={false}
-                  onLoad={() => setDashboardStreamError(false)}
-                  onError={() => {
-                    setDashboardStreamError(true);
-                    if (dashboardRetryRef.current) window.clearTimeout(dashboardRetryRef.current);
-                    dashboardRetryRef.current = window.setTimeout(() => {
-                      setDashboardStreamSrc(getMagSpotDeviceStreamUrl(device, compact ? 1 : 2));
-                    }, 1800);
-                  }}
-                  className="absolute inset-0 w-full h-full object-contain pointer-events-none"
-                  style={{ opacity: dashboardScrcpy.connected ? 0 : 1 }}
-                />
                 <canvas
-                  ref={dashboardScrcpy.canvasRef}
+                  ref={dashboardStream.canvasRef}
                   className="absolute inset-0 w-full h-full object-contain pointer-events-none"
-                  style={{ opacity: dashboardScrcpy.connected ? 1 : 0 }}
+                  style={{ opacity: dashboardStream.connected ? 1 : 0 }}
                 />
+                {!dashboardStream.connected && (
+                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                    <span className="text-[8px] font-mono tracking-widest" style={{ color: `rgba(${ACCENT_RGB},0.35)` }}>
+                      {dashboardStream.failed ? "NO STREAM" : "CONNECTING…"}
+                    </span>
+                  </div>
+                )}
                 {!smallScreenEnabled && (
                   <div className="absolute inset-0 flex items-center justify-center pointer-events-none" style={{ background: "rgba(0,0,0,0.18)" }}>
                     <span className="text-[8px] font-mono tracking-widest" style={{ color: `rgba(${ACCENT_RGB},0.35)` }}>
@@ -825,9 +864,8 @@ export function DeviceFocusModal({
   const [infoOpen, setInfoOpen] = useState(false);
   const [registryRecords, setRegistryRecords] = useState(() => safeLoadRecords());
   const [actionState, setActionState] = useState<{ action: string; status: "running" | "ok" | "error" } | null>(null);
-  const [screenSrc, setScreenSrc] = useState(() => getMagSpotDeviceStreamUrl(device, 12));
   const [screenError, setScreenError] = useState<string | null>(null);
-  const focusedScrcpy = useMagSpotScrcpyVideo(device, true, 30, 720, 4_000_000);
+  const focusedStream = useMagSpotWsImageStream(device, true, 720, 75);
   const [now, setNow] = useState(() => new Date());
   const [position, setPosition] = useState(() => ({
     x: Math.max(24, Math.round(window.innerWidth / 2 - 170)),
@@ -839,9 +877,7 @@ export function DeviceFocusModal({
   }));
   const dragRef = useRef<{ startX: number; startY: number; originX: number; originY: number } | null>(null);
   const resizeRef = useRef<{ startX: number; startY: number; originWidth: number; originHeight: number } | null>(null);
-  const screenImageRef = useRef<HTMLImageElement>(null);
   const pointerRef = useRef<{ x: number; y: number; at: number } | null>(null);
-  const streamRetryRef = useRef<number | null>(null);
   const savedSchedule = loadSavedScheduleResult();
   const planIndicator = getPlanIndicatorStyle(getDevicePlanIndicator(device.id, savedSchedule, now));
   const registryRecord = registryRecords[String(device.id)] ?? emptyRecord(String(displayNum).padStart(3, "0"));
@@ -877,10 +913,10 @@ export function DeviceFocusModal({
   }, [device.id]);
 
   const getScreenPoint = useCallback((event: React.PointerEvent | PointerEvent) => {
-    const image = screenImageRef.current;
-    if (!image || !image.naturalWidth || !image.naturalHeight) return null;
-    const rect = image.getBoundingClientRect();
-    const naturalAspect = image.naturalWidth / image.naturalHeight;
+    const canvas = focusedStream.canvasRef.current;
+    if (!canvas || !canvas.width || !canvas.height) return null;
+    const rect = canvas.getBoundingClientRect();
+    const naturalAspect = canvas.width / canvas.height;
     const renderedAspect = rect.width / rect.height;
     let drawWidth = rect.width;
     let drawHeight = rect.height;
@@ -897,10 +933,10 @@ export function DeviceFocusModal({
     const localY = event.clientY - rect.top - offsetY;
     if (localX < 0 || localY < 0 || localX > drawWidth || localY > drawHeight) return null;
     return {
-      x: Math.round((localX / drawWidth) * image.naturalWidth),
-      y: Math.round((localY / drawHeight) * image.naturalHeight),
+      x: Math.round((localX / drawWidth) * canvas.width),
+      y: Math.round((localY / drawHeight) * canvas.height),
     };
-  }, []);
+  }, [focusedStream.canvasRef]);
 
   const handleScreenPointerDown = useCallback((event: React.PointerEvent<HTMLDivElement>) => {
     if (event.button !== 0) return;
@@ -1011,7 +1047,6 @@ export function DeviceFocusModal({
       document.removeEventListener("mouseup", onMouseUp);
       window.removeEventListener("storage", onStorage);
       window.clearInterval(interval);
-      if (streamRetryRef.current) window.clearTimeout(streamRetryRef.current);
     };
   }, [onClose]);
 
@@ -1118,29 +1153,18 @@ export function DeviceFocusModal({
             className="flex-1 relative overflow-hidden"
             style={{ cursor: "crosshair", background: "#05070c", touchAction: "none" }}
           >
-            <img
-              ref={screenImageRef}
-              src={screenSrc}
-              alt={`Live screen for ${device.ip}`}
-              draggable={false}
-              onLoad={() => {
-                setScreenError(null);
-              }}
-              onError={() => {
-                setScreenError("Waiting for live stream...");
-                if (streamRetryRef.current) window.clearTimeout(streamRetryRef.current);
-                streamRetryRef.current = window.setTimeout(() => {
-                  setScreenSrc(getMagSpotDeviceStreamUrl(device, 12));
-                }, 1500);
-              }}
-              className="absolute inset-0 w-full h-full object-contain pointer-events-none"
-              style={{ imageRendering: "auto", opacity: focusedScrcpy.connected ? 0 : 1 }}
-            />
             <canvas
-              ref={focusedScrcpy.canvasRef}
+              ref={focusedStream.canvasRef}
               className="absolute inset-0 w-full h-full object-contain pointer-events-none"
-              style={{ opacity: focusedScrcpy.connected ? 1 : 0 }}
+              style={{ opacity: focusedStream.connected ? 1 : 0 }}
             />
+            {!focusedStream.connected && (
+              <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                <span className="text-[10px] font-mono tracking-widest" style={{ color: `rgba(${ACCENT_RGB},0.4)` }}>
+                  {focusedStream.failed ? "NO STREAM" : "CONNECTING…"}
+                </span>
+              </div>
+            )}
           </div>
 
           <div
