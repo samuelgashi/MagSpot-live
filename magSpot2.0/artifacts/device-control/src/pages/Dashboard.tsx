@@ -18,8 +18,10 @@ import {
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
-import { Search, Zap, Wifi, WifiOff, Globe } from "lucide-react";
+import { Search, Zap, Wifi, WifiOff, Globe, Keyboard } from "lucide-react";
 import { useLang } from "../lib/lang";
+import { BROWSER_KEYCODE_MAP, isPrintableKey } from "@/lib/androidKeycodes";
+import { postMagSpotSyncCommand } from "@/lib/magspotApi";
 
 const SCALE_WHEEL_THRESHOLD = 90;
 
@@ -87,6 +89,34 @@ export function Dashboard({ onLogout }: { onLogout?: () => void } = {}) {
   const setSelection = (ids: number[]) => {
     setSelectedDeviceIds(ids);
   };
+
+  // Dashboard-level keyboard capture: active when devices are selected and
+  // no focused window is open (focused window has its own keyboard handler).
+  const keyboardCaptureActive = !focusedDevice && selectedDeviceIds.length > 0;
+
+  useEffect(() => {
+    if (!keyboardCaptureActive) return;
+    const targets = filteredDevices.filter((d) => selectedDeviceIds.includes(d.id));
+    if (targets.length === 0) return;
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      const el = event.target as HTMLElement;
+      if (el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.tagName === "SELECT") return;
+      if (event.key === "Escape") return;
+      const keycode = BROWSER_KEYCODE_MAP.get(event.code);
+      if (keycode === undefined) return;
+      event.preventDefault();
+      if (event.repeat) return; // send first press only to avoid flooding
+      if (isPrintableKey(event)) {
+        postMagSpotSyncCommand(targets, "shell", ["input", "text", event.key]).catch(() => {});
+      } else {
+        postMagSpotSyncCommand(targets, "shell", ["input", "keyevent", String(keycode)]).catch(() => {});
+      }
+    };
+
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, [keyboardCaptureActive, filteredDevices, selectedDeviceIds]);
 
   const closeFocusedDevice = () => {
     const focusedId = focusedDevice?.device.id;
@@ -319,15 +349,30 @@ export function Dashboard({ onLogout }: { onLogout?: () => void } = {}) {
           <div className="flex-1" />
 
           {selectedDeviceIds.length > 0 && (
-            <span
-              className="text-xs px-2 py-1 rounded-md font-medium"
-              style={{
-                background: "rgba(0,212,232,0.12)",
-                color: "#00d4e8",
-                border: "1px solid rgba(0,212,232,0.25)",
-              }}
-            >
-              {selectedDeviceIds.length} {t.selected}
+            <span className="flex items-center gap-1.5">
+              <span
+                className="text-xs px-2 py-1 rounded-md font-medium"
+                style={{
+                  background: "rgba(0,212,232,0.12)",
+                  color: "#00d4e8",
+                  border: "1px solid rgba(0,212,232,0.25)",
+                }}
+              >
+                {selectedDeviceIds.length} {t.selected}
+              </span>
+              {keyboardCaptureActive && (
+                <span
+                  title="Keyboard input active — keystrokes go to selected devices"
+                  className="flex items-center gap-1 text-xs px-1.5 py-1 rounded-md font-medium"
+                  style={{
+                    background: "rgba(168,85,247,0.15)",
+                    color: "#a855f7",
+                    border: "1px solid rgba(168,85,247,0.3)",
+                  }}
+                >
+                  <Keyboard className="w-3 h-3" />
+                </span>
+              )}
             </span>
           )}
 
