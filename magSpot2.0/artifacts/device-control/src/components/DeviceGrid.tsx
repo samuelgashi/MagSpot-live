@@ -310,7 +310,9 @@ function buildVideoSettingsMsg(
 //
 //  Leave empty ("") to let the device auto-select the best available encoder.
 //
-const SCRCPY_ENCODER = "OMX.qcom.video.encoder.avc";
+// Set a specific encoder name only if you know it exists on your devices.
+// Wrong name → scrcpy server exits → no stream. Leave empty to auto-select.
+const SCRCPY_ENCODER = "";
 //
 // Stream quality — tweak here to trade resolution/bitrate for latency.
 // At 300 devices these numbers matter: 420p @ 1 Mbps keeps bandwidth tight.
