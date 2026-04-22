@@ -255,6 +255,119 @@ function buildVideoSettingsMsg(maxSize: number, bitRate: number, maxFps: number)
   return buf.buffer;
 }
 
+// ── Android motion / key constants (from scrcpy ControlMessage + KeyEvent) ────
+const A_DOWN   = 0;   // MotionEvent ACTION_DOWN
+const A_UP     = 1;   // MotionEvent ACTION_UP
+const A_MOVE   = 2;   // MotionEvent ACTION_MOVE
+const A_CANCEL = 3;   // MotionEvent ACTION_CANCEL
+const BTN_PRIMARY = 1; // MotionEvent BUTTON_PRIMARY
+
+// KeyEvent action constants
+const KEY_DOWN = 0;
+const KEY_UP   = 1;
+
+// KeyEvent meta state bitmasks
+const META_SHIFT_ON      = 1;
+const META_ALT_ON        = 2;
+const META_CTRL_ON       = 4096;
+const META_META_ON       = 65536;
+const META_CAPS_LOCK_ON  = 1048576;
+const META_NUM_LOCK_ON   = 2097152;
+const META_SCROLL_LOCK_ON = 4194304;
+
+/** Browser KeyboardEvent.code → Android KeyEvent keycode (from ws-scrcpy KeyToCodeMap) */
+const BROWSER_KEYCODE_MAP = new Map<string, number>([
+  ["Backquote",68],["Backslash",73],["BracketLeft",71],["BracketRight",72],
+  ["Comma",55],["Digit0",7],["Digit1",8],["Digit2",9],["Digit3",10],
+  ["Digit4",11],["Digit5",12],["Digit6",13],["Digit7",14],["Digit8",15],["Digit9",16],
+  ["Equal",70],
+  ["KeyA",29],["KeyB",30],["KeyC",31],["KeyD",32],["KeyE",33],["KeyF",34],
+  ["KeyG",35],["KeyH",36],["KeyI",37],["KeyJ",38],["KeyK",39],["KeyL",40],
+  ["KeyM",41],["KeyN",42],["KeyO",43],["KeyP",44],["KeyQ",45],["KeyR",46],
+  ["KeyS",47],["KeyT",48],["KeyU",49],["KeyV",50],["KeyW",51],["KeyX",52],
+  ["KeyY",53],["KeyZ",54],
+  ["Minus",69],["Period",56],["Quote",75],["Semicolon",74],["Slash",76],
+  ["Delete",112],["End",123],["Home",122],["Insert",124],["PageDown",93],["PageUp",92],
+  ["AltLeft",57],["AltRight",58],["Backspace",67],["CapsLock",115],
+  ["ControlLeft",113],["ControlRight",114],["Enter",66],
+  ["MetaLeft",117],["MetaRight",118],["ShiftLeft",59],["ShiftRight",60],
+  ["Space",62],["Tab",61],
+  ["ArrowLeft",21],["ArrowUp",19],["ArrowRight",22],["ArrowDown",20],
+  ["NumLock",143],["Numpad0",144],["Numpad1",145],["Numpad2",146],["Numpad3",147],
+  ["Numpad4",148],["Numpad5",149],["Numpad6",150],["Numpad7",151],["Numpad8",152],
+  ["Numpad9",153],["NumpadAdd",157],["NumpadComma",159],["NumpadDecimal",158],
+  ["NumpadDivide",154],["NumpadEnter",160],["NumpadEqual",161],
+  ["NumpadMultiply",155],["NumpadSubtract",156],
+  ["Escape",111],
+  ["F1",131],["F2",132],["F3",133],["F4",134],["F5",135],["F6",136],
+  ["F7",137],["F8",138],["F9",139],["F10",140],["F11",141],["F12",142],
+  ["Fn",119],["PrintScreen",120],["Pause",121],["ScrollLock",116],
+  ["IntlRo",217],["IntlYen",216],["KanaMode",218],
+]);
+
+/** Build a 29-byte TYPE_TOUCH control message */
+function buildTouchMsg(
+  action: number, pointerId: number,
+  x: number, y: number, screenW: number, screenH: number,
+  pressure: number, buttons: number,
+): ArrayBuffer {
+  const v = new DataView(new ArrayBuffer(29));
+  let o = 0;
+  v.setUint8(o, 2); o++;                          // type = TYPE_TOUCH (2)
+  v.setUint8(o, action); o++;                     // action
+  v.setUint32(o, 0, false); o += 4;               // pointerId high 32 bits = 0
+  v.setUint32(o, pointerId >>> 0, false); o += 4; // pointerId low 32 bits
+  v.setUint32(o, x >>> 0, false); o += 4;         // x
+  v.setUint32(o, y >>> 0, false); o += 4;         // y
+  v.setUint16(o, screenW, false); o += 2;         // screenWidth
+  v.setUint16(o, screenH, false); o += 2;         // screenHeight
+  v.setUint16(o, Math.round(Math.max(0, Math.min(1, pressure)) * 0xffff), false); o += 2; // pressure
+  v.setUint32(o, buttons, false);                 // buttons
+  return v.buffer;
+}
+
+/** Build a 21-byte TYPE_SCROLL control message */
+function buildScrollMsg(
+  x: number, y: number, screenW: number, screenH: number,
+  hScroll: number, vScroll: number,
+): ArrayBuffer {
+  const v = new DataView(new ArrayBuffer(21));
+  let o = 0;
+  v.setUint8(o, 3); o++;               // type = TYPE_SCROLL (3)
+  v.setUint32(o, x >>> 0, false); o += 4;
+  v.setUint32(o, y >>> 0, false); o += 4;
+  v.setUint16(o, screenW, false); o += 2;
+  v.setUint16(o, screenH, false); o += 2;
+  v.setInt32(o, hScroll, false); o += 4;
+  v.setInt32(o, vScroll, false);
+  return v.buffer;
+}
+
+/** Build a 14-byte TYPE_KEYCODE control message */
+function buildKeyMsg(action: number, keycode: number, repeat: number, metaState: number): ArrayBuffer {
+  const v = new DataView(new ArrayBuffer(14));
+  let o = 0;
+  v.setInt8(o, 0); o++;              // type = TYPE_KEYCODE (0)
+  v.setInt8(o, action); o++;         // action
+  v.setInt32(o, keycode, false); o += 4;
+  v.setInt32(o, repeat, false); o += 4;
+  v.setInt32(o, metaState, false);
+  return v.buffer;
+}
+
+/** Compute Android KeyEvent metaState from a browser KeyboardEvent */
+function keyMetaState(e: KeyboardEvent): number {
+  return (
+    (e.getModifierState("Alt")        ? META_ALT_ON        : 0) |
+    (e.getModifierState("Shift")      ? META_SHIFT_ON      : 0) |
+    (e.getModifierState("Control")    ? META_CTRL_ON       : 0) |
+    (e.getModifierState("Meta")       ? META_META_ON       : 0) |
+    (e.getModifierState("CapsLock")   ? META_CAPS_LOCK_ON  : 0) |
+    (e.getModifierState("ScrollLock") ? META_SCROLL_LOCK_ON : 0) |
+    (e.getModifierState("NumLock")    ? META_NUM_LOCK_ON   : 0)
+  );
+}
+
 /** Locate next Annex-B start code: returns [position, startCodeLength] or [-1, 0] */
 function findAnnexBStartCode(data: Uint8Array, from: number): [number, number] {
   const lim = data.length - 3;
@@ -281,8 +394,14 @@ function useScrcpyDirectVideo(
   bitRate = 4_000_000,
 ) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const socketRef = useRef<WebSocket | null>(null);
   const [connected, setConnected] = useState(false);
   const [failed, setFailed] = useState(false);
+
+  const sendControl = useCallback((data: ArrayBuffer) => {
+    const ws = socketRef.current;
+    if (ws && ws.readyState === WebSocket.OPEN) ws.send(data);
+  }, []);
 
   useEffect(() => {
     if (!enabled || typeof VideoDecoder !== "function") {
@@ -397,6 +516,7 @@ function useScrcpyDirectVideo(
 
         socket = new WebSocket(wsUrl);
         socket.binaryType = "arraybuffer";
+        socketRef.current = socket;
 
         socket.onmessage = (event) => {
           if (cancelled || !decoder || !(event.data instanceof ArrayBuffer)) return;
@@ -430,6 +550,7 @@ function useScrcpyDirectVideo(
 
     return () => {
       cancelled = true;
+      socketRef.current = null;
       if (fallbackTimer !== null) window.clearTimeout(fallbackTimer);
       if (socket) socket.close();
       if (decoder && decoder.state !== "closed") decoder.close();
@@ -437,7 +558,7 @@ function useScrcpyDirectVideo(
     };
   }, [device.id, device.ip, enabled, maxFps, maxSize, bitRate]);
 
-  return { canvasRef, connected, failed };
+  return { canvasRef, connected, failed, sendControl };
 }
 
 export interface FocusedDevice {
@@ -815,7 +936,19 @@ function DeviceCard({
     if (!point) return;
     dashboardPointerRef.current = { ...point, at: Date.now() };
     event.currentTarget.setPointerCapture(event.pointerId);
-  }, [getDashboardPoint, smallScreenEnabled]);
+    const canvas = dashboardStream.canvasRef.current;
+    if (!canvas || !canvas.width) return;
+    dashboardStream.sendControl(buildTouchMsg(A_DOWN, event.pointerId, point.x, point.y, canvas.width, canvas.height, event.pressure || 1, BTN_PRIMARY));
+  }, [getDashboardPoint, smallScreenEnabled, dashboardStream]);
+
+  const handleDashboardPointerMove = useCallback((event: React.PointerEvent<HTMLDivElement>) => {
+    if (!smallScreenEnabled || !dashboardPointerRef.current) return;
+    const point = getDashboardPoint(event);
+    if (!point) return;
+    const canvas = dashboardStream.canvasRef.current;
+    if (!canvas || !canvas.width) return;
+    dashboardStream.sendControl(buildTouchMsg(A_MOVE, event.pointerId, point.x, point.y, canvas.width, canvas.height, event.pressure || 1, BTN_PRIMARY));
+  }, [getDashboardPoint, smallScreenEnabled, dashboardStream]);
 
   const handleDashboardPointerUp = useCallback(async (event: React.PointerEvent<HTMLDivElement>) => {
     if (!smallScreenEnabled || event.button !== 0) return;
@@ -824,28 +957,27 @@ function DeviceCard({
     const start = dashboardPointerRef.current;
     dashboardPointerRef.current = null;
     const end = getDashboardPoint(event);
-    if (!start || !end) return;
-    const dx = end.x - start.x;
-    const dy = end.y - start.y;
-    const distance = Math.sqrt(dx * dx + dy * dy);
-    try {
-      if (distance < 12) {
-        await postMagSpotLiveControlToDevices(controlDevices, { type: "tap", x: end.x, y: end.y });
-      } else {
-        await postMagSpotLiveControlToDevices(controlDevices, {
-          type: "swipe",
-          x: start.x,
-          y: start.y,
-          x2: end.x,
-          y2: end.y,
-          duration: Date.now() - start.at,
-        });
-      }
-      setControlError(null);
-    } catch (error) {
-      setControlError(error instanceof Error ? error.message : "Control failed");
+    const canvas = dashboardStream.canvasRef.current;
+    if (end && canvas && canvas.width) {
+      dashboardStream.sendControl(buildTouchMsg(A_UP, event.pointerId, end.x, end.y, canvas.width, canvas.height, 0, BTN_PRIMARY));
     }
-  }, [controlDevices, getDashboardPoint, smallScreenEnabled]);
+    if (!start || !end) return;
+    // For group sync: send to extra devices via API (current device already handled above)
+    const otherDevices = controlDevices.filter((d) => d.id !== device.id);
+    if (otherDevices.length > 0) {
+      const dx = end.x - start.x;
+      const dy = end.y - start.y;
+      const distance = Math.sqrt(dx * dx + dy * dy);
+      try {
+        if (distance < 12) {
+          await postMagSpotLiveControlToDevices(otherDevices, { type: "tap", x: end.x, y: end.y });
+        } else {
+          await postMagSpotLiveControlToDevices(otherDevices, { type: "swipe", x: start.x, y: start.y, x2: end.x, y2: end.y, duration: Date.now() - start.at });
+        }
+      } catch { /* ignore */ }
+    }
+    setControlError(null);
+  }, [controlDevices, device.id, getDashboardPoint, smallScreenEnabled, dashboardStream]);
 
   return (
     <ContextMenu>
@@ -943,8 +1075,16 @@ function DeviceCard({
           {/* ── PHONE DISPLAY AREA ── */}
           <div
             onPointerDown={handleDashboardPointerDown}
+            onPointerMove={handleDashboardPointerMove}
             onPointerUp={handleDashboardPointerUp}
-            onPointerCancel={() => { dashboardPointerRef.current = null; }}
+            onPointerCancel={(e) => {
+              const canvas = dashboardStream.canvasRef.current;
+              if (dashboardPointerRef.current && canvas && canvas.width) {
+                const pt = dashboardPointerRef.current;
+                dashboardStream.sendControl(buildTouchMsg(A_CANCEL, e.pointerId, pt.x, pt.y, canvas.width, canvas.height, 0, 0));
+              }
+              dashboardPointerRef.current = null;
+            }}
             className="flex-1 relative overflow-hidden"
             style={{ cursor: smallScreenEnabled ? "crosshair" : "default", background: "#05070c", touchAction: smallScreenEnabled ? "none" : "auto" }}
           >
@@ -1157,37 +1297,42 @@ export function DeviceFocusModal({
     if (!point) return;
     pointerRef.current = { ...point, at: Date.now() };
     event.currentTarget.setPointerCapture(event.pointerId);
-  }, [getScreenPoint]);
+    const canvas = focusedStream.canvasRef.current;
+    if (!canvas || !canvas.width) return;
+    focusedStream.sendControl(buildTouchMsg(A_DOWN, event.pointerId, point.x, point.y, canvas.width, canvas.height, event.pressure || 1, BTN_PRIMARY));
+  }, [getScreenPoint, focusedStream]);
 
-  const handleScreenPointerUp = useCallback(async (event: React.PointerEvent<HTMLDivElement>) => {
+  const handleScreenPointerMove = useCallback((event: React.PointerEvent<HTMLDivElement>) => {
+    if (!pointerRef.current) return;
+    const point = getScreenPoint(event);
+    if (!point) return;
+    const canvas = focusedStream.canvasRef.current;
+    if (!canvas || !canvas.width) return;
+    focusedStream.sendControl(buildTouchMsg(A_MOVE, event.pointerId, point.x, point.y, canvas.width, canvas.height, event.pressure || 1, BTN_PRIMARY));
+  }, [getScreenPoint, focusedStream]);
+
+  const handleScreenPointerUp = useCallback((event: React.PointerEvent<HTMLDivElement>) => {
     if (event.button !== 0) return;
     event.preventDefault();
     event.stopPropagation();
-    const start = pointerRef.current;
     pointerRef.current = null;
     const end = getScreenPoint(event);
-    if (!start || !end) return;
-    const dx = end.x - start.x;
-    const dy = end.y - start.y;
-    const distance = Math.sqrt(dx * dx + dy * dy);
-    try {
-      if (distance < 12) {
-        await postMagSpotLiveControlToDevices(controlDevices, { type: "tap", x: end.x, y: end.y });
-      } else {
-        await postMagSpotLiveControlToDevices(controlDevices, {
-          type: "swipe",
-          x: start.x,
-          y: start.y,
-          x2: end.x,
-          y2: end.y,
-          duration: Date.now() - start.at,
-        });
-      }
-      setScreenError(null);
-    } catch (error) {
-      setScreenError(error instanceof Error ? error.message : "Control failed");
+    const canvas = focusedStream.canvasRef.current;
+    if (end && canvas && canvas.width) {
+      focusedStream.sendControl(buildTouchMsg(A_UP, event.pointerId, end.x, end.y, canvas.width, canvas.height, 0, BTN_PRIMARY));
     }
-  }, [controlDevices, getScreenPoint]);
+    setScreenError(null);
+  }, [getScreenPoint, focusedStream]);
+
+  const handleScreenWheel = useCallback((event: React.WheelEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    const point = getScreenPoint(event as unknown as React.PointerEvent);
+    if (!point) return;
+    const canvas = focusedStream.canvasRef.current;
+    if (!canvas || !canvas.width) return;
+    const SCROLL_SCALE = 1 / 120;
+    focusedStream.sendControl(buildScrollMsg(point.x, point.y, canvas.width, canvas.height, Math.round(event.deltaX * SCROLL_SCALE), Math.round(event.deltaY * SCROLL_SCALE)));
+  }, [getScreenPoint, focusedStream]);
 
   const handleDragStart = useCallback((event: React.MouseEvent) => {
     if (event.button !== 0) return;
@@ -1213,9 +1358,34 @@ export function DeviceFocusModal({
   }, [size.width, size.height]);
 
   useEffect(() => {
+    const repeatCounter = new Map<number, number>();
+
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") onClose();
+      if (event.key === "Escape") { onClose(); return; }
+      // Don't capture when a browser form element is focused
+      const target = event.target as HTMLElement;
+      if (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.tagName === "SELECT") return;
+      const keycode = BROWSER_KEYCODE_MAP.get(event.code);
+      if (keycode === undefined) return;
+      let repeatCount = 0;
+      if (event.repeat) {
+        repeatCount = (repeatCounter.get(keycode) ?? 0) + 1;
+        repeatCounter.set(keycode, repeatCount);
+      }
+      focusedStream.sendControl(buildKeyMsg(KEY_DOWN, keycode, repeatCount, keyMetaState(event)));
+      event.preventDefault();
     };
+
+    const onKeyUp = (event: KeyboardEvent) => {
+      const target = event.target as HTMLElement;
+      if (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.tagName === "SELECT") return;
+      const keycode = BROWSER_KEYCODE_MAP.get(event.code);
+      if (keycode === undefined) return;
+      repeatCounter.delete(keycode);
+      focusedStream.sendControl(buildKeyMsg(KEY_UP, keycode, 0, keyMetaState(event)));
+      event.preventDefault();
+    };
+
     const onStorage = () => setRegistryRecords(safeLoadRecords());
     const interval = window.setInterval(() => setNow(new Date()), 30_000);
     const onMouseMove = (event: MouseEvent) => {
@@ -1249,17 +1419,19 @@ export function DeviceFocusModal({
       resizeRef.current = null;
     };
     document.addEventListener("keydown", onKeyDown);
+    document.addEventListener("keyup", onKeyUp);
     document.addEventListener("mousemove", onMouseMove);
     document.addEventListener("mouseup", onMouseUp);
     window.addEventListener("storage", onStorage);
     return () => {
       document.removeEventListener("keydown", onKeyDown);
+      document.removeEventListener("keyup", onKeyUp);
       document.removeEventListener("mousemove", onMouseMove);
       document.removeEventListener("mouseup", onMouseUp);
       window.removeEventListener("storage", onStorage);
       window.clearInterval(interval);
     };
-  }, [onClose]);
+  }, [onClose, focusedStream.sendControl]);
 
   return createPortal(
     <div className="fixed inset-0 z-[10000] pointer-events-none">
@@ -1359,8 +1531,17 @@ export function DeviceFocusModal({
 
           <div
             onPointerDown={handleScreenPointerDown}
+            onPointerMove={handleScreenPointerMove}
             onPointerUp={handleScreenPointerUp}
-            onPointerCancel={() => { pointerRef.current = null; }}
+            onPointerCancel={(e) => {
+              const canvas = focusedStream.canvasRef.current;
+              if (pointerRef.current && canvas && canvas.width) {
+                const pt = pointerRef.current;
+                focusedStream.sendControl(buildTouchMsg(A_CANCEL, e.pointerId, pt.x, pt.y, canvas.width, canvas.height, 0, 0));
+              }
+              pointerRef.current = null;
+            }}
+            onWheel={handleScreenWheel}
             className="flex-1 relative overflow-hidden"
             style={{ cursor: "crosshair", background: "#05070c", touchAction: "none" }}
           >
