@@ -200,7 +200,7 @@ export function Dashboard({ onLogout }: { onLogout?: () => void } = {}) {
           device={focusedDevice.device}
           displayNum={focusedDevice.displayNum}
           onClose={closeFocusedDevice}
-          controlDevices={syncControlEnabled ? filteredDevices : [focusedDevice.device]}
+          controlDevices={syncControlEnabled && selectedDeviceIds.length > 0 ? filteredDevices.filter(d => selectedDeviceIds.includes(d.id)) : [focusedDevice.device]}
           syncControlEnabled={syncControlEnabled}
         />
       )}

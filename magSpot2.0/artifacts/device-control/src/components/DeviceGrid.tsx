@@ -841,7 +841,7 @@ export function DeviceGrid({
               onOpenFocusedDevice={onOpenFocusedDevice}
               smallScreenEnabled={smallScreenEnabled}
               syncControlEnabled={syncControlEnabled}
-              controlDevices={syncControlEnabled ? filteredDevices : [device]}
+              controlDevices={syncControlEnabled && selectedDeviceIds.length > 0 ? filteredDevices.filter(d => selectedDeviceIds.includes(d.id)) : [device]}
               now={now}
               savedSchedule={savedSchedule}
               t={t}
