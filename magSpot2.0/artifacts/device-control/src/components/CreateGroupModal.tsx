@@ -140,7 +140,7 @@ export function CreateGroupModal({ open, onOpenChange, existingGroups = [] }: Cr
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px] bg-card border-border">
+      <DialogContent className="sm:max-w-[425px] border-border" style={{ background: "rgba(10,14,24,0.98)", border: "1px solid rgba(255,255,255,0.1)" }}>
         <DialogHeader>
           <DialogTitle>Create New Group</DialogTitle>
         </DialogHeader>

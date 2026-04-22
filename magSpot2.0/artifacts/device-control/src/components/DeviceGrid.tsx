@@ -184,7 +184,7 @@ interface DeviceGridProps {
   onSetSelection: (ids: number[]) => void;
   onClearSelection: () => void;
   groups: Group[];
-  onAddToGroup: (groupId: number) => void;
+  onAddToGroup: (groupId: number, deviceId?: number) => void;
   smallScreenEnabled: boolean;
   syncControlEnabled: boolean;
   focusedDeviceId: number | null;
@@ -488,7 +488,7 @@ function DeviceCard({
   compact: boolean;
   groups: Group[];
   selectedDeviceIds: number[];
-  onAddToGroup: (groupId: number) => void;
+  onAddToGroup: (groupId: number, deviceId?: number) => void;
   onClearSelection: () => void;
   onOpenFocusedDevice: (focusedDevice: FocusedDevice) => void;
   smallScreenEnabled: boolean;
@@ -783,7 +783,7 @@ function DeviceCard({
                 <ContextMenuItem
                   key={group.id}
                   className="text-sm text-white/80 focus:bg-white/10 focus:text-white cursor-pointer"
-                  onClick={() => onAddToGroup(group.id)}
+                  onClick={() => onAddToGroup(group.id, device.id)}
                 >
                   <span
                     className="w-2 h-2 rounded-full mr-2 shrink-0 inline-block"

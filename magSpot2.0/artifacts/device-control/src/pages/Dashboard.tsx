@@ -85,8 +85,10 @@ export function Dashboard({ onLogout }: { onLogout?: () => void } = {}) {
     setFocusedDevice(null);
   };
 
-  const addToGroup = async (groupId: number) => {
-    const ids = selectedDeviceIds;
+  const addToGroup = async (groupId: number, deviceId?: number) => {
+    const ids = deviceId !== undefined
+      ? [...new Set([deviceId, ...selectedDeviceIds])]
+      : selectedDeviceIds;
     if (ids.length === 0) return;
     try {
       await Promise.all(ids.map((id) => updateDevice.mutateAsync({ id, data: { groupId } })));

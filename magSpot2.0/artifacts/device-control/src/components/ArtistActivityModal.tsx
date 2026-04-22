@@ -170,12 +170,45 @@ function TimeDrag({ value, onChange, min, max }: {
   );
 }
 
-function FieldRow({ label, required, children }: { label: string; required?: boolean; children: React.ReactNode }) {
+function FieldRow({ label, required, description, children }: { label: string; required?: boolean; description?: string; children: React.ReactNode }) {
+  const [tooltipVisible, setTooltipVisible] = useState(false);
   return (
     <div style={{ display: "flex", flexDirection: "column" }}>
       <span style={LABEL_STYLE}>
         {label}
-        {required && <span style={{ color: "#ef4444", marginLeft: 3 }}>*</span>}
+        {required && (
+          <span style={{ position: "relative", display: "inline-block" }}>
+            <span
+              style={{ color: "#ef4444", marginLeft: 3, cursor: description ? "help" : "default" }}
+              onMouseEnter={() => description && setTooltipVisible(true)}
+              onMouseLeave={() => setTooltipVisible(false)}
+            >*</span>
+            {tooltipVisible && description && (
+              <span style={{
+                position: "absolute",
+                bottom: "calc(100% + 4px)",
+                left: "50%",
+                transform: "translateX(-50%)",
+                background: "rgba(12,15,26,0.97)",
+                border: "1px solid rgba(255,255,255,0.15)",
+                borderRadius: 6,
+                padding: "5px 9px",
+                fontSize: 10,
+                color: "rgba(255,255,255,0.75)",
+                whiteSpace: "nowrap",
+                maxWidth: 240,
+                zIndex: 9999,
+                pointerEvents: "none",
+                boxShadow: "0 4px 16px rgba(0,0,0,0.5)",
+                fontWeight: 400,
+                letterSpacing: 0,
+                textTransform: "none",
+              }}>
+                {description}
+              </span>
+            )}
+          </span>
+        )}
       </span>
       {children}
     </div>
@@ -397,32 +430,10 @@ export function ArtistActivityModal({ kind = "artist", deviceIds, onClose, onSta
           )}
 
           {dynamicActivity && argsToRender.map((field) => (
-            <FieldRow key={field.key} label={field.description.replace(/\.\.\.$/, "")} required={field.is_required}>
+            <FieldRow key={field.key} label={field.key.replace(/_/g, " ").toUpperCase()} required={field.is_required} description={field.description.replace(/\.\.\.$/, "")}>
               {renderDynamicField(field, formData[field.key], (v) => setField(field.key, v))}
             </FieldRow>
           ))}
-
-          {dynamicActivity && kwaygsList.length > 0 && (
-            <div style={{ border: "1px solid rgba(255,255,255,0.08)", borderRadius: 10, overflow: "hidden" }}>
-              <button
-                type="button"
-                onClick={() => setAdvancedOpen((v) => !v)}
-                style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "9px 12px", background: "rgba(255,255,255,0.03)", border: "none", cursor: "pointer", color: "rgba(255,255,255,0.55)", fontSize: 11, fontWeight: 600, letterSpacing: "0.04em", textTransform: "uppercase" }}
-              >
-                Advanced Settings
-                <ChevronDown style={{ width: 14, height: 14, transform: advancedOpen ? "rotate(180deg)" : "none", transition: "transform .15s" }} />
-              </button>
-              {advancedOpen && (
-                <div style={{ padding: "10px 12px", display: "flex", flexDirection: "column", gap: 10, borderTop: "1px solid rgba(255,255,255,0.06)" }}>
-                  {kwaygsList.map((field) => (
-                    <FieldRow key={field.key} label={field.description.replace(/\.\.\.$/, "")} required={field.is_required}>
-                      {renderDynamicField(field, formData[field.key], (v) => setField(field.key, v))}
-                    </FieldRow>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
 
           {validationErrors.length > 0 && (
             <div style={{ border: "1px solid rgba(239,68,68,0.28)", background: "rgba(239,68,68,0.08)", borderRadius: 8, padding: "8px 10px", display: "flex", flexDirection: "column", gap: 4 }}>
@@ -445,6 +456,28 @@ export function ArtistActivityModal({ kind = "artist", deviceIds, onClose, onSta
               )}
             </div>
           </FieldRow>
+
+          {dynamicActivity && kwaygsList.length > 0 && (
+            <div style={{ border: "1px solid rgba(255,255,255,0.08)", borderRadius: 10, overflow: "hidden" }}>
+              <button
+                type="button"
+                onClick={() => setAdvancedOpen((v) => !v)}
+                style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "9px 12px", background: "rgba(255,255,255,0.03)", border: "none", cursor: "pointer", color: "rgba(255,255,255,0.55)", fontSize: 11, fontWeight: 600, letterSpacing: "0.04em", textTransform: "uppercase" }}
+              >
+                Advanced Settings
+                <ChevronDown style={{ width: 14, height: 14, transform: advancedOpen ? "rotate(180deg)" : "none", transition: "transform .15s" }} />
+              </button>
+              {advancedOpen && (
+                <div style={{ padding: "10px 12px", display: "flex", flexDirection: "column", gap: 10, borderTop: "1px solid rgba(255,255,255,0.06)" }}>
+                  {kwaygsList.map((field) => (
+                    <FieldRow key={field.key} label={field.key.replace(/_/g, " ").toUpperCase()} required={field.is_required} description={field.description.replace(/\.\.\.$/, "")}>
+                      {renderDynamicField(field, formData[field.key], (v) => setField(field.key, v))}
+                    </FieldRow>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Footer */}

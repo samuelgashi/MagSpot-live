@@ -267,7 +267,8 @@ function startScrcpyStyleStream(ws, deviceId, options = {}) {
   const maxSize = Math.max(240, Math.min(1440, parsePositiveInt(options.maxSize) || 720));
   const bitRate = Math.max(250000, Math.min(16000000, parsePositiveInt(options.bitRate) || 4000000));
   const maxFps = Math.max(5, Math.min(60, parsePositiveInt(options.maxFps) || 30));
-  const sizeArg = getScreenrecordSizeArg(deviceId, maxSize);
+  const even = (n) => Math.max(2, Math.round(n / 2) * 2);
+  const sizeArg = `${even(maxSize)}x${even(maxSize)}`;
   const args = [
     '-s',
     deviceId,
@@ -275,9 +276,9 @@ function startScrcpyStyleStream(ws, deviceId, options = {}) {
     'screenrecord',
     '--output-format=h264',
     `--bit-rate=${bitRate}`,
+    `--size=${sizeArg}`,
     '-'
   ];
-  if (sizeArg) args.splice(6, 0, `--size=${sizeArg}`);
   const adb = spawn('adb', args, { stdio: ['ignore', 'pipe', 'pipe'] });
   let closed = false;
   let lastSentAt = 0;
@@ -292,6 +293,11 @@ function startScrcpyStyleStream(ws, deviceId, options = {}) {
   const cleanup = () => {
     if (closed) return;
     closed = true;
+    try {
+      if (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING) {
+        ws.close(1011, 'stream ended');
+      }
+    } catch (_) {}
     adb.kill('SIGTERM');
     setTimeout(() => {
       if (!adb.killed) adb.kill('SIGKILL');
