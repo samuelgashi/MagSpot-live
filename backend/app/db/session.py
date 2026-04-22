@@ -86,7 +86,45 @@ def run_migrations():
             """))
             if not result.fetchone():
                 conn.execute(text("""ALTER TABLE "Android_Devices" ADD COLUMN serial_number VARCHAR"""))
-            else: pass
+
+            for col, coltype in [
+                ("model", "VARCHAR(255)"),
+                ("android_version", "VARCHAR(50)"),
+                ("battery_level", "VARCHAR(10)"),
+                ("sheet_url", "TEXT"),
+            ]:
+                result = conn.execute(text(f"""
+                    SELECT column_name FROM information_schema.columns 
+                    WHERE table_name = 'Android_Devices' AND column_name = '{col}'
+                """))
+                if not result.fetchone():
+                    conn.execute(text(f'ALTER TABLE "Android_Devices" ADD COLUMN {col} {coltype}'))
+
+            for col, coltype in [
+                ("description", "TEXT"),
+                ("color", "VARCHAR(50)"),
+            ]:
+                result = conn.execute(text(f"""
+                    SELECT column_name FROM information_schema.columns 
+                    WHERE table_name = 'Device_Groups' AND column_name = '{col}'
+                """))
+                if not result.fetchone():
+                    conn.execute(text(f'ALTER TABLE "Device_Groups" ADD COLUMN {col} {coltype}'))
+
+            conn.execute(text("""
+                CREATE TABLE IF NOT EXISTS "Task_Templates" (
+                    id SERIAL PRIMARY KEY,
+                    user_id VARCHAR NOT NULL REFERENCES "Users"(user_id) ON DELETE CASCADE,
+                    name VARCHAR NOT NULL,
+                    description TEXT,
+                    type VARCHAR DEFAULT 'custom',
+                    script_ref VARCHAR,
+                    duration_min INTEGER DEFAULT 30,
+                    duration_max INTEGER DEFAULT 120,
+                    created_at TIMESTAMP DEFAULT NOW()
+                )
+            """))
+
             trans.commit()
             print("All migrations completed successfully!")
             

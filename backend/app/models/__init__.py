@@ -4,6 +4,7 @@ from app.models.devices import AndroidDevice
 from app.models.apiKeys import ApiKey
 from app.models.groups import DeviceGroup, GroupDevice
 from app.models.tasks import Task
+from app.models.task_templates import TaskTemplate
 
 __all__ = [
     "Users",
@@ -12,5 +13,6 @@ __all__ = [
     "ApiKey",
     "DeviceGroup",
     "GroupDevice",
-    "Task"
+    "Task",
+    "TaskTemplate",
 ]

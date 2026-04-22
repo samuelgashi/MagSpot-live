@@ -10,6 +10,8 @@ class DeviceGroup(Base):
     group_id = Column(String, primary_key=True)
     user_id = Column(String, ForeignKey("Users.user_id", ondelete="CASCADE"), nullable=False)
     name = Column(String, nullable=False)
+    description = Column(Text, nullable=True)
+    color = Column(String(50), nullable=True)
     created_at = Column(TIMESTAMP, default=datetime.utcnow)
     updated_at = Column(TIMESTAMP, default=datetime.utcnow, onupdate=datetime.utcnow)
 

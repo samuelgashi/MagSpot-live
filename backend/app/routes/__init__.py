@@ -13,6 +13,7 @@ youtube_api = Blueprint("youtube_api", __name__, url_prefix='/api/youtube_api')
 from app.routes import admin
 from app.routes import tasks
 from app.routes import devices
+from app.routes import task_templates
 from app.routes import api
 from app.routes import api_keys
 from app.routes import tunnels

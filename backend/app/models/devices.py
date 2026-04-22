@@ -12,9 +12,13 @@ class AndroidDevice(Base):
     user_id = Column(String, ForeignKey("Users.user_id", ondelete="CASCADE"), nullable=False)
     android_ip = Column(String, nullable=False)
     android_name = Column(String)
-    serial_number = Column(String, nullable=True)  # S/N for device identification
+    serial_number = Column(String, nullable=True)
     status = Column(String, default="FREE")
     current_task_id = Column(String, nullable=True)
+    model = Column(String(255), nullable=True)
+    android_version = Column(String(50), nullable=True)
+    battery_level = Column(String(10), nullable=True)
+    sheet_url = Column(Text, nullable=True)
     last_seen = Column(TIMESTAMP, default=datetime.utcnow)
     tasks = relationship("Task", back_populates="device", cascade="all, delete-orphan")
 

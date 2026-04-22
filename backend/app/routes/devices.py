@@ -134,7 +134,12 @@ def create_group():
     if not data or 'name' not in data:
         return jsonify({'error': 'Group name is required'}), 400
     
-    group_id = db_create_group(g.user_id, data['name'])
+    group_id = db_create_group(
+        g.user_id,
+        data['name'],
+        description=data.get('description'),
+        color=data.get('color'),
+    )
     return jsonify({
         'message': 'Group created successfully',
         'group_id': group_id
@@ -167,7 +172,13 @@ def update_group(group_id):
     if not data or 'name' not in data:
         return jsonify({'error': 'Group name is required'}), 400
     
-    updated = db_update_group(g.user_id, group_id, data['name'])
+    updated = db_update_group(
+        g.user_id,
+        group_id,
+        data['name'],
+        description=data.get('description'),
+        color=data.get('color'),
+    )
     if not updated:
         return jsonify({'error': 'Group not found'}), 404
     return jsonify({'message': 'Group updated successfully'}), 200
