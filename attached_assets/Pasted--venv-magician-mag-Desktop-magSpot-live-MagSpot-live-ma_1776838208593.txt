@@ -1,0 +1,66 @@
+(venv) magician@mag:~/Desktop/magSpot-live/MagSpot-live-main/magSpot2.0$ pnpm run typecheck:libs && pnpm -r --filter \"./artifacts/**\" --filter \"./scripts\" --if-present run typecheck
+
+> workspace@0.0.0 typecheck:libs /home/magician/Desktop/magSpot-live/MagSpot-live-main/magSpot2.0
+> tsc --build
+
+No projects matched the filters in "/home/magician/Desktop/magSpot-live/MagSpot-live-main/magSpot2.0"
+(venv) magician@mag:~/Desktop/magSpot-live/MagSpot-live-main/magSpot2.0$ npm run build
+
+> workspace@0.0.0 build
+> pnpm run typecheck && pnpm -r --if-present run build
+
+
+> workspace@0.0.0 typecheck /home/magician/Desktop/magSpot-live/MagSpot-live-main/magSpot2.0
+> pnpm run typecheck:libs && pnpm -r --filter "./artifacts/**" --filter "./scripts" --if-present run typecheck
+
+
+> workspace@0.0.0 typecheck:libs /home/magician/Desktop/magSpot-live/MagSpot-live-main/magSpot2.0
+> tsc --build
+
+Scope: 4 of 9 workspace projects
+artifacts/api-server typecheck$ tsc -p tsconfig.json --noEmit
+└─ Done in 4.8s
+artifacts/device-control typecheck$ tsc -p tsconfig.json --noEmit
+│ src/components/AdbCommandModal.tsx(101,70): error TS2345: Argument of type 'Device[]' is not assignable to parameter of type …
+│   Type 'Device' is not assignable to type '{ [key: string]: unknown; id: number; ip?: string | undefined; }'.
+│     Index signature for type 'string' is missing in type 'Device'.
+│ src/components/DeviceGrid.tsx(108,64): error TS2345: Argument of type 'Device' is not assignable to parameter of type '{ [key…
+│   Index signature for type 'string' is missing in type 'Device'.
+│ src/components/DeviceGrid.tsx(110,9): error TS2322: Type 'number' is not assignable to type 'Timeout'.
+│ src/components/DeviceGrid.tsx(502,117): error TS2345: Argument of type 'Device' is not assignable to parameter of type '{ [ke…
+│   Index signature for type 'string' is missing in type 'Device'.
+│ src/components/DeviceGrid.tsx(518,74): error TS2345: Argument of type 'Device' is not assignable to parameter of type '{ [key…
+│   Index signature for type 'string' is missing in type 'Device'.
+│ src/components/DeviceGrid.tsx(574,47): error TS2345: Argument of type 'Device[]' is not assignable to parameter of type '{ [k…
+│   Type 'Device' is not assignable to type '{ [key: string]: unknown; id: number; ip?: string | undefined; }'.
+│     Index signature for type 'string' is missing in type 'Device'.
+│ src/components/DeviceGrid.tsx(576,47): error TS2345: Argument of type 'Device[]' is not assignable to parameter of type '{ [k…
+│   Type 'Device' is not assignable to type '{ [key: string]: unknown; id: number; ip?: string | undefined; }'.
+│     Index signature for type 'string' is missing in type 'Device'.
+│ src/components/DeviceGrid.tsx(703,21): error TS2322: Type 'number' is not assignable to type 'Timeout'.
+│ src/components/DeviceGrid.tsx(704,71): error TS2345: Argument of type 'Device' is not assignable to parameter of type '{ [key…
+│   Index signature for type 'string' is missing in type 'Device'.
+│ src/components/DeviceGrid.tsx(821,78): error TS2345: Argument of type 'Device' is not assignable to parameter of type '{ [key…
+│   Index signature for type 'string' is missing in type 'Device'.
+│ src/components/DeviceGrid.tsx(861,37): error TS2345: Argument of type 'Device' is not assignable to parameter of type '{ [key…
+│   Index signature for type 'string' is missing in type 'Device'.
+│ src/components/DeviceGrid.tsx(921,47): error TS2345: Argument of type 'Device[]' is not assignable to parameter of type '{ [k…
+│   Type 'Device' is not assignable to type '{ [key: string]: unknown; id: number; ip?: string | undefined; }'.
+│     Index signature for type 'string' is missing in type 'Device'.
+│ src/components/DeviceGrid.tsx(923,47): error TS2345: Argument of type 'Device[]' is not assignable to parameter of type '{ [k…
+│   Type 'Device' is not assignable to type '{ [key: string]: unknown; id: number; ip?: string | undefined; }'.
+│     Index signature for type 'string' is missing in type 'Device'.
+│ src/components/DeviceGrid.tsx(1125,17): error TS2322: Type 'number' is not assignable to type 'Timeout'.
+│ src/components/DeviceGrid.tsx(1126,58): error TS2345: Argument of type 'Device' is not assignable to parameter of type '{ [ke…
+│   Index signature for type 'string' is missing in type 'Device'.
+│ src/components/DeviceGrid.tsx(1296,5): error TS2322: Type 'number' is not assignable to type 'Timeout'.
+└─ Failed in 17.6s at /home/magician/Desktop/magSpot-live/MagSpot-live-main/magSpot2.0/artifacts/device-control
+artifacts/mockup-sandbox typecheck$ tsc -p tsconfig.json --noEmit
+└─ Done in 11.7s
+scripts typecheck$ tsc -p tsconfig.json --noEmit
+└─ Done in 2.2s
+/home/magician/Desktop/magSpot-live/MagSpot-live-main/magSpot2.0/artifacts/device-control:
+ ERR_PNPM_RECURSIVE_RUN_FIRST_FAIL  @workspace/device-control@0.0.0 typecheck: `tsc -p tsconfig.json --noEmit`
+Exit status 2
+ ELIFECYCLE  Command failed with exit code 2.
+(venv) magician@mag:~/Desktop/magSpot-live/MagSpot-live-main/magSpot2.0$ 
