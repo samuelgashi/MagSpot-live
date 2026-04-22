@@ -125,6 +125,27 @@ export function getMagSpotDeviceWsImageStreamUrl(device: { id: number; ip?: stri
   return url.toString();
 }
 
+export async function postMagSpotStartScrcpyServer(device: { id: number; ip?: string; [key: string]: unknown }): Promise<{ wsUrl: string }> {
+  const response = await fetch(buildMagSpotApiUrl("/api/devices/start-scrcpy-server"), {
+    method: "POST",
+    headers: getMagSpotHeaders(),
+    body: JSON.stringify({ deviceId: getMagSpotDeviceBackendId(device) }),
+  });
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({ message: "Unknown error" }));
+    throw new Error(err.message ?? "Failed to start scrcpy server");
+  }
+  return response.json();
+}
+
+export async function postMagSpotStopScrcpyServer(device: { id: number; ip?: string; [key: string]: unknown }): Promise<void> {
+  await fetch(buildMagSpotApiUrl("/api/devices/stop-scrcpy-server"), {
+    method: "POST",
+    headers: getMagSpotHeaders(),
+    body: JSON.stringify({ deviceId: getMagSpotDeviceBackendId(device) }),
+  });
+}
+
 export async function postMagSpotLiveControl(
   device: { id: number; ip?: string; [key: string]: unknown },
   payload: { type: "tap"; x: number; y: number } | { type: "swipe"; x: number; y: number; x2: number; y2: number; duration?: number },

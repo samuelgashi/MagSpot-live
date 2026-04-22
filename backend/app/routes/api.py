@@ -840,6 +840,81 @@ def get_system_resources():
         }), 500
 
 
+SCRCPY_SERVER_JAR = os.path.join(
+    os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
+    'ws-scrcpy', 'vendor', 'Genymobile', 'scrcpy', 'scrcpy-server.jar',
+)
+
+# POST /api/devices/start-scrcpy-server
+@api_keys_bp.route('/devices/start-scrcpy-server', methods=['POST'])
+def start_scrcpy_server():
+    data = request.get_json() or {}
+    device_id = data.get('deviceId', '')
+    if not device_id:
+        return jsonify({'message': 'deviceId is required'}), 400
+
+    device_ip = device_id.split(':')[0]
+
+    try:
+        # Push scrcpy-server.jar to device
+        push = subprocess.run(
+            [Config.ADB_PATH, '-s', device_id, 'push', SCRCPY_SERVER_JAR, '/data/local/tmp/scrcpy-server.jar'],
+            capture_output=True, timeout=30,
+        )
+        if push.returncode != 0:
+            return jsonify({'message': f'Failed to push jar: {push.stderr.decode(errors="replace")}'}), 500
+
+        # Kill any previous instance
+        subprocess.run(
+            [Config.ADB_PATH, '-s', device_id, 'shell', 'pkill -f scrcpy-server.jar || true'],
+            capture_output=True, timeout=5,
+        )
+        time.sleep(0.4)
+
+        # Start scrcpy-server on all interfaces (true = listen on 0.0.0.0)
+        server_cmd = (
+            'CLASSPATH=/data/local/tmp/scrcpy-server.jar '
+            'nohup app_process / com.genymobile.scrcpy.Server '
+            '1.19-ws6 web ERROR 8886 true '
+            '> /dev/null 2>&1 &'
+        )
+        subprocess.run(
+            [Config.ADB_PATH, '-s', device_id, 'shell', server_cmd],
+            capture_output=True, timeout=10,
+        )
+
+        # Wait until the server process appears (max 4 s)
+        for _ in range(20):
+            time.sleep(0.2)
+            check = subprocess.run(
+                [Config.ADB_PATH, '-s', device_id, 'shell', 'pgrep -f scrcpy-server || true'],
+                capture_output=True, timeout=5,
+            )
+            if check.stdout.strip():
+                break
+
+        return jsonify({'wsUrl': f'ws://{device_ip}:8886'}), 200
+
+    except subprocess.TimeoutExpired:
+        return jsonify({'message': 'Timeout starting scrcpy server'}), 504
+    except Exception as e:
+        return jsonify({'message': str(e)}), 500
+
+
+# POST /api/devices/stop-scrcpy-server
+@api_keys_bp.route('/devices/stop-scrcpy-server', methods=['POST'])
+def stop_scrcpy_server():
+    data = request.get_json() or {}
+    device_id = data.get('deviceId', '')
+    if not device_id:
+        return jsonify({'message': 'deviceId is required'}), 400
+    subprocess.run(
+        [Config.ADB_PATH, '-s', device_id, 'shell', 'pkill -f scrcpy-server.jar || true'],
+        capture_output=True, timeout=5,
+    )
+    return jsonify({'ok': True}), 200
+
+
 # GET /api/devices/stream - MJPEG screencap stream
 @api_keys_bp.route('/devices/stream', methods=['GET'])
 def device_stream():

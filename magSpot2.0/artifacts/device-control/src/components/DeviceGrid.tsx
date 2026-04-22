@@ -8,7 +8,7 @@ import { DEVICE_REGISTRY_CHANGE_EVENT, DEVICE_REGISTRY_STORAGE_KEY, emptyRecord,
 import { CountryOption, countryFlag, matchCountries } from "@/lib/countries";
 import { loadSavedScheduleResult, SavedScheduleResult } from "@/lib/scheduleResults";
 import { getDevicePlanIndicator, getPlanIndicatorStyle } from "@/lib/devicePlanIndicator";
-import { getMagSpotDeviceWsImageStreamUrl, getMagSpotDeviceScrcpyStreamUrl, getMagSpotDeviceStreamUrl, postMagSpotDeviceAction, postMagSpotLiveControlToDevices } from "@/lib/magspotApi";
+import { postMagSpotStartScrcpyServer, getMagSpotDeviceWsImageStreamUrl, getMagSpotDeviceScrcpyStreamUrl, getMagSpotDeviceStreamUrl, postMagSpotDeviceAction, postMagSpotLiveControlToDevices } from "@/lib/magspotApi";
 import {
   ContextMenu,
   ContextMenuContent,
@@ -225,6 +225,217 @@ function useMagSpotWsImageStream(device: Device, enabled: boolean, maxSize = 540
       setConnected(false);
     };
   }, [device.id, device.ip, enabled, maxSize, quality]);
+
+  return { canvasRef, connected, failed };
+}
+
+// ── helpers ──────────────────────────────────────────────────────────────────
+// ws-scrcpy initial-handshake magic bytes: "scrcpy_initial"
+const SCRCPY_INITIAL_MAGIC = new TextEncoder().encode("scrcpy_initial");
+
+/** Build the 36-byte TYPE_CHANGE_STREAM_PARAMETERS control message */
+function buildVideoSettingsMsg(maxSize: number, bitRate: number, maxFps: number): ArrayBuffer {
+  const buf = new DataView(new ArrayBuffer(36));
+  let o = 0;
+  buf.setUint8(o, 101); o += 1;              // type = TYPE_CHANGE_STREAM_PARAMETERS
+  buf.setInt32(o, bitRate, false); o += 4;   // bitrate  (BE)
+  buf.setInt32(o, maxFps, false); o += 4;    // maxFps   (BE)
+  buf.setInt8(o, 10); o += 1;               // iFrameInterval
+  buf.setInt16(o, maxSize, false); o += 2;   // bounds width  (BE)
+  buf.setInt16(o, maxSize, false); o += 2;   // bounds height (BE)
+  buf.setInt16(o, 0, false); o += 2;         // crop left
+  buf.setInt16(o, 0, false); o += 2;         // crop top
+  buf.setInt16(o, 0, false); o += 2;         // crop right
+  buf.setInt16(o, 0, false); o += 2;         // crop bottom
+  buf.setInt8(o, 0); o += 1;               // sendFrameMeta = false
+  buf.setInt8(o, -1); o += 1;              // lockedVideoOrientation = -1
+  buf.setInt32(o, 0, false); o += 4;         // displayId = 0
+  buf.setInt32(o, 0, false); o += 4;         // codecOptionsLength = 0
+  buf.setInt32(o, 0, false);                 // encoderNameLength = 0
+  return buf.buffer;
+}
+
+/** Locate next Annex-B start code: returns [position, startCodeLength] or [-1, 0] */
+function findAnnexBStartCode(data: Uint8Array, from: number): [number, number] {
+  const lim = data.length - 3;
+  for (let i = from; i <= lim; i++) {
+    if (data[i] === 0 && data[i + 1] === 0) {
+      if (i < lim && data[i + 2] === 0 && data[i + 3] === 1) return [i, 4];
+      if (data[i + 2] === 1) return [i, 3];
+    }
+  }
+  return [-1, 0];
+}
+
+/**
+ * Connect directly to a ws-scrcpy server running on the Android device.
+ * Calls POST /api/devices/start-scrcpy-server first to push + start the jar,
+ * then opens ws://DEVICE_IP:8886, skips the initial handshake message,
+ * sends VideoSettings, and feeds the H264 Annex-B stream to WebCodecs.
+ */
+function useScrcpyDirectVideo(
+  device: Device,
+  enabled: boolean,
+  maxFps = 30,
+  maxSize = 720,
+  bitRate = 4_000_000,
+) {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [connected, setConnected] = useState(false);
+  const [failed, setFailed] = useState(false);
+
+  useEffect(() => {
+    if (!enabled || typeof VideoDecoder !== "function") {
+      setConnected(false);
+      setFailed(false);
+      return;
+    }
+
+    let cancelled = false;
+    let socket: WebSocket | null = null;
+    let decoder: VideoDecoder | null = null;
+    let fallbackTimer: number | null = null;
+
+    // WebCodecs decoder state
+    let configured = false;
+    let gotKeyFrame = false;
+    let timestamp = 0;
+    let sps: Uint8Array | null = null;
+    let pps: Uint8Array | null = null;
+    let hasDecodedFrame = false;
+    let initialMsgReceived = false;
+
+    // Annex-B NAL splitter state
+    let pendingBuf = new Uint8Array(0);
+
+    const concat = (a: Uint8Array, b: Uint8Array) => {
+      const c = new Uint8Array(a.length + b.length);
+      c.set(a);
+      c.set(b, a.length);
+      return c;
+    };
+
+    const feedNal = (nal: Uint8Array) => {
+      if (!decoder) return;
+      const headerOff = getNalHeaderOffset(nal);
+      const type = nal[headerOff] & 0x1f;
+      if (type === 7) {
+        sps = nal;
+        if (!configured) {
+          try {
+            decoder.configure({ codec: getSpsCodec(nal), optimizeForLatency: true });
+            configured = true;
+          } catch { /* unsupported codec — will fail gracefully */ }
+        }
+        return;
+      }
+      if (type === 8) { pps = nal; return; }
+      if (!configured || decoder.state !== "configured") return;
+      const isKey = type === 5;
+      if (isKey) gotKeyFrame = true;
+      if (!gotKeyFrame) return;
+      const chunkData = isKey && sps && pps ? concatNalUnits([sps, pps, nal]) : nal;
+      try {
+        decoder.decode(new EncodedVideoChunk({ type: isKey ? "key" : "delta", timestamp, data: chunkData }));
+      } catch { /* ignore decode errors */ }
+      timestamp += Math.round(1_000_000 / maxFps);
+    };
+
+    const processChunk = (chunk: Uint8Array) => {
+      pendingBuf = concat(pendingBuf, chunk);
+
+      // Discard bytes before first start code
+      if (pendingBuf.length < 4) return;
+      const [firstPos] = findAnnexBStartCode(pendingBuf, 0);
+      if (firstPos < 0) return;
+      if (firstPos > 0) pendingBuf = pendingBuf.slice(firstPos);
+
+      // Extract complete NAL units
+      while (pendingBuf.length >= 4) {
+        const scLen = (pendingBuf[2] === 1) ? 3 : 4;
+        const [nextPos] = findAnnexBStartCode(pendingBuf, scLen);
+        if (nextPos < 0) break; // Incomplete — wait for more data
+        const nal = pendingBuf.slice(0, nextPos);
+        pendingBuf = pendingBuf.slice(nextPos);
+        feedNal(nal);
+      }
+    };
+
+    const start = async () => {
+      try {
+        setConnected(false);
+        setFailed(false);
+        const context = canvasRef.current?.getContext("2d", { alpha: false });
+        if (!context) throw new Error("Canvas unavailable");
+
+        decoder = new VideoDecoder({
+          output: (frame) => {
+            if (cancelled || !canvasRef.current) { frame.close(); return; }
+            if (canvasRef.current.width !== frame.displayWidth || canvasRef.current.height !== frame.displayHeight) {
+              canvasRef.current.width = frame.displayWidth;
+              canvasRef.current.height = frame.displayHeight;
+            }
+            context.drawImage(frame, 0, 0, canvasRef.current.width, canvasRef.current.height);
+            frame.close();
+            if (!hasDecodedFrame) {
+              hasDecodedFrame = true;
+              if (fallbackTimer !== null) { window.clearTimeout(fallbackTimer); fallbackTimer = null; }
+              setConnected(true);
+              setFailed(false);
+            }
+          },
+          error: () => { if (!cancelled) { setConnected(false); setFailed(true); } },
+        });
+
+        // Ask backend to push the jar and start the scrcpy-server on the device
+        const { wsUrl } = await postMagSpotStartScrcpyServer(device);
+        if (cancelled) return;
+
+        fallbackTimer = window.setTimeout(() => {
+          if (!cancelled && !hasDecodedFrame) setFailed(true);
+        }, 12_000);
+
+        socket = new WebSocket(wsUrl);
+        socket.binaryType = "arraybuffer";
+
+        socket.onmessage = (event) => {
+          if (cancelled || !decoder || !(event.data instanceof ArrayBuffer)) return;
+          const data = new Uint8Array(event.data);
+
+          // First message is the scrcpy handshake — skip it and send VideoSettings
+          if (!initialMsgReceived) {
+            initialMsgReceived = true;
+            const magic = data.slice(0, SCRCPY_INITIAL_MAGIC.length);
+            if (SCRCPY_INITIAL_MAGIC.every((b, i) => magic[i] === b)) {
+              // Send VideoSettings to configure resolution, bitrate, fps
+              if (socket && socket.readyState === WebSocket.OPEN) {
+                socket.send(buildVideoSettingsMsg(maxSize, bitRate, maxFps));
+              }
+              return;
+            }
+            // If first message wasn't the initial handshake, process it as video
+          }
+
+          processChunk(data);
+        };
+
+        socket.onerror = () => { if (!cancelled) setFailed(true); };
+        socket.onclose = () => { if (!cancelled) { setConnected(false); setFailed(true); } };
+      } catch {
+        if (!cancelled) { setConnected(false); setFailed(true); }
+      }
+    };
+
+    void start();
+
+    return () => {
+      cancelled = true;
+      if (fallbackTimer !== null) window.clearTimeout(fallbackTimer);
+      if (socket) socket.close();
+      if (decoder && decoder.state !== "closed") decoder.close();
+      setConnected(false);
+    };
+  }, [device.id, device.ip, enabled, maxFps, maxSize, bitRate]);
 
   return { canvasRef, connected, failed };
 }
@@ -561,7 +772,7 @@ function DeviceCard({
   const planIndicator = getPlanIndicatorStyle(getDevicePlanIndicator(device.id, savedSchedule, now));
   const [controlError, setControlError] = useState<string | null>(null);
   const dashboardPointerRef = useRef<{ x: number; y: number; at: number } | null>(null);
-  const dashboardStream = useMagSpotWsImageStream(device, true, compact ? 360 : 540, 70);
+  const dashboardStream = useScrcpyDirectVideo(device, true, 30, compact ? 360 : 540, 2_000_000);
   const registryRecord = safeLoadRecords()[String(device.id)];
   const deviceModel = registryRecord?.deviceModel?.trim() ?? "";
   const countryBadge = registryRecord?.vpnCountryCode
@@ -865,7 +1076,7 @@ export function DeviceFocusModal({
   const [registryRecords, setRegistryRecords] = useState(() => safeLoadRecords());
   const [actionState, setActionState] = useState<{ action: string; status: "running" | "ok" | "error" } | null>(null);
   const [screenError, setScreenError] = useState<string | null>(null);
-  const focusedStream = useMagSpotWsImageStream(device, true, 720, 75);
+  const focusedStream = useScrcpyDirectVideo(device, true, 30, 720, 4_000_000);
   const [now, setNow] = useState(() => new Date());
   const [position, setPosition] = useState(() => ({
     x: Math.max(24, Math.round(window.innerWidth / 2 - 170)),
