@@ -18,10 +18,11 @@ import {
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
-import { Search, Zap, Wifi, WifiOff, Globe, Keyboard } from "lucide-react";
+import { Search, Zap, Wifi, WifiOff, Globe, Keyboard, Monitor, Tag, Hash } from "lucide-react";
 import { useLang } from "../lib/lang";
 import { BROWSER_KEYCODE_MAP, isPrintableKey } from "@/lib/androidKeycodes";
 import { postMagSpotSyncCommand } from "@/lib/magspotApi";
+import { safeLoadRecords } from "../components/DeviceRegistryPanel";
 
 const SCALE_WHEEL_THRESHOLD = 90;
 
@@ -32,8 +33,10 @@ export function Dashboard({ onLogout }: { onLogout?: () => void } = {}) {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | "online" | "offline">("all");
   const [columns, setColumns] = useState(8);
-  const [smallScreenEnabled, setSmallScreenEnabled] = useState(true);
-  const [syncControlEnabled, setSyncControlEnabled] = useState(true);
+  const [smallScreenEnabled, setSmallScreenEnabled] = useState(false);
+  const [syncControlEnabled, setSyncControlEnabled] = useState(false);
+  const [streamEnabled, setStreamEnabled] = useState(false);
+  const [searchByMode, setSearchByMode] = useState<"name" | "ip">("name");
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [activePanel, setActivePanel] = useState<"network" | "adb" | "devices" | "schedule" | "tasks" | null>(null);
   const [showFullAutomation, setShowFullAutomation] = useState(false);
@@ -68,10 +71,20 @@ export function Dashboard({ onLogout }: { onLogout?: () => void } = {}) {
     } else {
       matchesGroup = device.groupId === selectedGroupId;
     }
-    const matchesSearch =
-      !searchQuery ||
-      device.ip.includes(searchQuery) ||
-      (device.model?.toLowerCase().includes(searchQuery.toLowerCase()) ?? false);
+    const ipHost = device.ip.split(':')[0];
+    const lastOctet = ipHost.split('.').pop() ?? '';
+    const registryModel = safeLoadRecords()[String(device.id)]?.deviceModel?.trim() ?? "";
+    const matchesSearch = !searchQuery || (() => {
+      const q = searchQuery.toLowerCase();
+      if (searchByMode === "ip") {
+        return device.ip.includes(searchQuery) || lastOctet === searchQuery;
+      }
+      return (
+        registryModel.toLowerCase().includes(q) ||
+        (device.model?.toLowerCase().includes(q) ?? false) ||
+        lastOctet === searchQuery
+      );
+    })();
     const matchesStatus =
       statusFilter === "all" ||
       (statusFilter === "online" ? device.status === "online" : device.status !== "online");
@@ -232,6 +245,7 @@ export function Dashboard({ onLogout }: { onLogout?: () => void } = {}) {
           onClose={closeFocusedDevice}
           controlDevices={syncControlEnabled && selectedDeviceIds.length > 0 ? filteredDevices.filter(d => selectedDeviceIds.includes(d.id)) : [focusedDevice.device]}
           syncControlEnabled={syncControlEnabled}
+          streamEnabled={streamEnabled}
         />
       )}
 
@@ -286,6 +300,26 @@ export function Dashboard({ onLogout }: { onLogout?: () => void } = {}) {
             borderBottom: "1px solid rgba(255,255,255,0.06)",
           }}
         >
+          <div className="flex items-center gap-1.5 shrink-0">
+            {(["name", "ip"] as const).map((mode) => {
+              const active = searchByMode === mode;
+              return (
+                <button
+                  key={mode}
+                  onClick={() => setSearchByMode(mode)}
+                  className="h-7 px-2 rounded-md text-[10px] font-semibold flex items-center gap-1 transition-all"
+                  style={{
+                    background: active ? "rgba(0,212,232,0.15)" : "rgba(255,255,255,0.05)",
+                    border: active ? "1px solid rgba(0,212,232,0.35)" : "1px solid rgba(255,255,255,0.07)",
+                    color: active ? "#00d4e8" : "rgba(255,255,255,0.4)",
+                  }}
+                >
+                  {mode === "name" ? <Tag className="w-3 h-3" /> : <Hash className="w-3 h-3" />}
+                  {mode === "name" ? "Name" : "IP"}
+                </button>
+              );
+            })}
+          </div>
           <div className="relative flex-1 max-w-xs">
             <Search
               className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 pointer-events-none"
@@ -293,7 +327,7 @@ export function Dashboard({ onLogout }: { onLogout?: () => void } = {}) {
             />
             <input
               type="search"
-              placeholder={t.searchDevice}
+              placeholder={searchByMode === "ip" ? "Search by IP / host…" : t.searchDevice}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full h-8 pl-8 pr-3 text-sm rounded-lg outline-none text-white placeholder-white/30"
@@ -328,6 +362,20 @@ export function Dashboard({ onLogout }: { onLogout?: () => void } = {}) {
               );
             })}
           </div>
+
+          {/* Real Time Display toggle */}
+          <button
+            onClick={() => setStreamEnabled((v) => !v)}
+            className="h-8 px-3.5 rounded-lg text-xs font-semibold flex items-center gap-2 transition-all hover:opacity-90 shrink-0"
+            style={{
+              background: streamEnabled ? "rgba(168,85,247,0.18)" : "rgba(255,255,255,0.05)",
+              border: streamEnabled ? "1px solid rgba(168,85,247,0.4)" : "1px solid rgba(255,255,255,0.08)",
+              color: streamEnabled ? "#a855f7" : "rgba(255,255,255,0.4)",
+            }}
+          >
+            <Monitor className="w-3.5 h-3.5" />
+            Real Time Display
+          </button>
 
           {/* Full Automation button */}
           <button
@@ -410,6 +458,7 @@ export function Dashboard({ onLogout }: { onLogout?: () => void } = {}) {
             onSetSelection={setSelection}
             smallScreenEnabled={smallScreenEnabled}
             syncControlEnabled={syncControlEnabled}
+            streamEnabled={streamEnabled}
             focusedDeviceId={focusedDevice?.device.id ?? null}
             onOpenFocusedDevice={setFocusedDevice}
           />

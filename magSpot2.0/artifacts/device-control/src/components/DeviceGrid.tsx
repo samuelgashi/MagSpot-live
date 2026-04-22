@@ -2,7 +2,7 @@ import React, { useRef, useEffect, useCallback, useState } from "react";
 import { createPortal } from "react-dom";
 import { Device, Group } from "@workspace/api-client-react";
 import { cn } from "@/lib/utils";
-import { ArrowLeft, Check, Copy, Home, Info, Lock, Pencil, RotateCw, Save, Volume1, Volume2, X, Wifi } from "lucide-react";
+import { ArrowLeft, Check, Copy, Home, Info, Keyboard, Lock, Pencil, RotateCw, Save, Send, Volume1, Volume2, X, Wifi } from "lucide-react";
 import { useLang } from "../lib/lang";
 import { DEVICE_REGISTRY_CHANGE_EVENT, DEVICE_REGISTRY_STORAGE_KEY, emptyRecord, safeLoadDeviceModels, safeLoadRecords, saveDeviceModels, DeviceRegistryRecord } from "./DeviceRegistryPanel";
 import { CountryOption, countryFlag, matchCountries } from "@/lib/countries";
@@ -598,6 +598,7 @@ interface DeviceGridProps {
   onAddToGroup: (groupId: number, deviceId?: number) => void;
   smallScreenEnabled: boolean;
   syncControlEnabled: boolean;
+  streamEnabled: boolean;
   focusedDeviceId: number | null;
   onOpenFocusedDevice: (focusedDevice: FocusedDevice) => void;
 }
@@ -615,6 +616,7 @@ export function DeviceGrid({
   onAddToGroup,
   smallScreenEnabled,
   syncControlEnabled,
+  streamEnabled,
   focusedDeviceId,
   onOpenFocusedDevice,
 }: DeviceGridProps) {
@@ -860,6 +862,7 @@ export function DeviceGrid({
               onOpenFocusedDevice={onOpenFocusedDevice}
               smallScreenEnabled={smallScreenEnabled}
               syncControlEnabled={syncControlEnabled}
+              streamEnabled={streamEnabled}
               controlDevices={syncControlEnabled && selectedDeviceIds.length > 0 ? filteredDevices.filter(d => selectedDeviceIds.includes(d.id)) : [device]}
               now={now}
               savedSchedule={savedSchedule}
@@ -904,6 +907,7 @@ function DeviceCard({
   onOpenFocusedDevice: (focusedDevice: FocusedDevice) => void;
   smallScreenEnabled: boolean;
   syncControlEnabled: boolean;
+  streamEnabled: boolean;
   controlDevices: Device[];
   now: Date;
   savedSchedule: SavedScheduleResult | null;
@@ -912,7 +916,8 @@ function DeviceCard({
   const planIndicator = getPlanIndicatorStyle(getDevicePlanIndicator(device.id, savedSchedule, now));
   const [controlError, setControlError] = useState<string | null>(null);
   const dashboardPointerRef = useRef<{ x: number; y: number; at: number } | null>(null);
-  const dashboardStream = useScrcpyDirectVideo(device, true, SCRCPY_FPS, SCRCPY_MAX_SIZE, SCRCPY_BITRATE, SCRCPY_IFRAME_SECS, SCRCPY_ENCODER);
+  const shouldStream = streamEnabled && !isFocusedOrigin;
+  const dashboardStream = useScrcpyDirectVideo(device, shouldStream, SCRCPY_FPS, SCRCPY_MAX_SIZE, SCRCPY_BITRATE, SCRCPY_IFRAME_SECS, SCRCPY_ENCODER);
   const registryRecord = safeLoadRecords()[String(device.id)];
   const deviceModel = registryRecord?.deviceModel?.trim() ?? "";
   const countryBadge = registryRecord?.vpnCountryCode
@@ -1055,7 +1060,10 @@ function DeviceCard({
                 className="font-mono leading-none truncate flex-1 text-center mx-1"
                 style={{ fontSize: "8px", color: "rgba(255,255,255,0.38)" }}
               >
-                {deviceModel || device.ip}
+                {(() => {
+                  const octet = device.ip.split(':')[0].split('.').pop() ?? '';
+                  return deviceModel ? `${octet} ${deviceModel}` : octet || device.ip;
+                })()}
               </span>
             )}
 
@@ -1109,7 +1117,14 @@ function DeviceCard({
             className="flex-1 relative overflow-hidden"
             style={{ cursor: smallScreenEnabled ? "crosshair" : "default", background: "#05070c", touchAction: smallScreenEnabled ? "none" : "auto" }}
           >
-            {true ? (
+            {isFocusedOrigin ? (
+              <div className="absolute inset-0 flex flex-col items-center justify-center gap-1.5 pointer-events-none">
+                <div className="w-2 h-2 rounded-full" style={{ background: ORIGIN_ACCENT, boxShadow: `0 0 8px ${ORIGIN_ACCENT}` }} />
+                <span className="text-[8px] font-mono tracking-widest uppercase" style={{ color: ORIGIN_ACCENT, opacity: 0.85 }}>
+                  Connected
+                </span>
+              </div>
+            ) : shouldStream ? (
               <>
                 <canvas
                   ref={dashboardStream.canvasRef}
@@ -1132,9 +1147,9 @@ function DeviceCard({
                 )}
               </>
             ) : (
-              <div className="absolute inset-0 flex items-center justify-center">
+              <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                 <span className="text-[8px] font-mono tracking-widest" style={{ color: `rgba(${ACCENT_RGB},0.22)` }}>
-                  CONNECTING…
+                  DISPLAY OFF
                 </span>
               </div>
             )}
@@ -1225,19 +1240,25 @@ export function DeviceFocusModal({
   onClose,
   controlDevices,
   syncControlEnabled,
+  streamEnabled,
 }: {
   device: Device;
   displayNum: number;
   onClose: () => void;
   controlDevices: Device[];
   syncControlEnabled: boolean;
+  streamEnabled?: boolean;
 }) {
   const { t } = useLang();
   const [infoOpen, setInfoOpen] = useState(false);
+  const [keyboardOpen, setKeyboardOpen] = useState(false);
+  const [keyboardText, setKeyboardText] = useState("");
+  const keyboardInputRef = useRef<HTMLInputElement>(null);
   const [registryRecords, setRegistryRecords] = useState(() => safeLoadRecords());
   const [actionState, setActionState] = useState<{ action: string; status: "running" | "ok" | "error" } | null>(null);
   const [screenError, setScreenError] = useState<string | null>(null);
-  const focusedStream = useScrcpyDirectVideo(device, true, SCRCPY_FPS, SCRCPY_MAX_SIZE, SCRCPY_BITRATE, SCRCPY_IFRAME_SECS, SCRCPY_ENCODER);
+  const modalStreamEnabled = streamEnabled !== false;
+  const focusedStream = useScrcpyDirectVideo(device, modalStreamEnabled, SCRCPY_FPS, SCRCPY_MAX_SIZE, SCRCPY_BITRATE, SCRCPY_IFRAME_SECS, SCRCPY_ENCODER);
   const [now, setNow] = useState(() => new Date());
   const [position, setPosition] = useState(() => ({
     x: Math.max(24, Math.round(window.innerWidth / 2 - 170)),
@@ -1283,6 +1304,22 @@ export function DeviceFocusModal({
       }, 1200);
     }
   }, [device.id]);
+
+  const sendKeyboardText = useCallback(async () => {
+    const text = keyboardText.trim();
+    if (!text) return;
+    setKeyboardText("");
+    try {
+      await postMagSpotSyncCommand(controlDevices, `input text "${text.replace(/"/g, '\\"')}"`);
+    } catch {
+    }
+  }, [keyboardText, controlDevices]);
+
+  useEffect(() => {
+    if (keyboardOpen) {
+      window.setTimeout(() => keyboardInputRef.current?.focus(), 50);
+    }
+  }, [keyboardOpen]);
 
   const getScreenPoint = useCallback((event: React.PointerEvent | PointerEvent) => {
     const canvas = focusedStream.canvasRef.current;
@@ -1542,7 +1579,10 @@ export function DeviceFocusModal({
                 {displayNum}
               </span>
               <span className="font-mono leading-none truncate" style={{ fontSize: "8px", color: "#7f8791" }}>
-                {deviceModel || device.ip}
+                {(() => {
+                  const octet = device.ip.split(':')[0].split('.').pop() ?? '';
+                  return deviceModel ? `${octet} ${deviceModel}` : octet || device.ip;
+                })()}
               </span>
             </div>
 
@@ -1618,6 +1658,42 @@ export function DeviceFocusModal({
             )}
           </div>
 
+          {keyboardOpen && (
+            <div
+              className="flex items-center gap-1.5 px-2 py-1.5 shrink-0"
+              style={{ borderTop: "1px solid rgba(255,255,255,0.08)", background: "rgba(0,0,0,0.3)" }}
+              onPointerDown={(e) => e.stopPropagation()}
+            >
+              <input
+                ref={keyboardInputRef}
+                type="text"
+                placeholder="Type text to send…"
+                value={keyboardText}
+                onChange={(e) => setKeyboardText(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    sendKeyboardText();
+                  }
+                }}
+                className="flex-1 h-7 px-2 rounded-md text-xs outline-none text-white placeholder-white/30"
+                style={{
+                  background: "rgba(255,255,255,0.07)",
+                  border: `1px solid rgba(${ORIGIN_ACCENT_RGB},0.3)`,
+                  fontFamily: "var(--app-font-sans)",
+                }}
+              />
+              <button
+                onClick={sendKeyboardText}
+                title="Send"
+                className="w-7 h-7 rounded-md flex items-center justify-center shrink-0 transition-colors hover:opacity-80"
+                style={{ background: `rgba(${ORIGIN_ACCENT_RGB},0.18)`, border: `1px solid rgba(${ORIGIN_ACCENT_RGB},0.35)`, color: ORIGIN_ACCENT }}
+              >
+                <Send className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          )}
+
           <div
             className="absolute left-0 inset-y-0 w-0.5"
             style={{ background: `linear-gradient(180deg, transparent, ${ACCENT}, transparent)` }}
@@ -1632,9 +1708,11 @@ export function DeviceFocusModal({
         </div>
         <DeviceActionRail
           infoOpen={infoOpen}
+          keyboardOpen={keyboardOpen}
           actionState={actionState}
           height={size.height}
           onToggleInfo={() => setInfoOpen((current) => !current)}
+          onToggleKeyboard={() => setKeyboardOpen((v) => !v)}
           onRunAction={runDeviceAction}
         />
         {infoOpen && (
@@ -1653,15 +1731,19 @@ export function DeviceFocusModal({
 
 function DeviceActionRail({
   infoOpen,
+  keyboardOpen,
   actionState,
   height,
   onToggleInfo,
+  onToggleKeyboard,
   onRunAction,
 }: {
   infoOpen: boolean;
+  keyboardOpen: boolean;
   actionState: { action: string; status: "running" | "ok" | "error" } | null;
   height: number;
   onToggleInfo: () => void;
+  onToggleKeyboard: () => void;
   onRunAction: (action: string) => void;
 }) {
   const { t } = useLang();
@@ -1707,6 +1789,18 @@ function DeviceActionRail({
         </button>
       ))}
       <div className="flex-1" />
+      <button
+        onClick={onToggleKeyboard}
+        title="Text input"
+        className="w-full h-10 flex items-center justify-center transition-colors"
+        style={{
+          color: keyboardOpen ? ORIGIN_ACCENT : "rgba(255,255,255,0.42)",
+          background: keyboardOpen ? `rgba(${ORIGIN_ACCENT_RGB},0.14)` : "transparent",
+          borderTop: "1px solid rgba(255,255,255,0.08)",
+        }}
+      >
+        <Keyboard className="w-4 h-4" />
+      </button>
       <button
         onClick={onToggleInfo}
         title={t.info}

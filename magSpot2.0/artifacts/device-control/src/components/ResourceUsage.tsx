@@ -39,14 +39,21 @@ function normalizeResources(raw: unknown): ResourceState {
   };
 }
 
-function ResourceRow({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
+function pctColor(pct: number | null): string {
+  if (pct === null) return "#00d4e8";
+  if (pct < 50) return "#22c55e";
+  if (pct < 80) return "#3b82f6";
+  return "#ef4444";
+}
+
+function ResourceRow({ icon, label, value, pct }: { icon: React.ReactNode; label: string; value: string; pct?: number | null }) {
   return (
     <div className="flex items-center justify-between rounded-md px-2.5 py-2" style={{ background: "rgba(255,255,255,0.055)", border: "1px solid rgba(255,255,255,0.075)" }}>
       <span className="flex items-center gap-2 text-[11px] font-medium" style={{ color: "rgba(255,255,255,0.64)" }}>
         {icon}
         {label}
       </span>
-      <span className="text-[11px] font-mono font-semibold" style={{ color: "#00d4e8" }}>{value}</span>
+      <span className="text-[11px] font-mono font-semibold" style={{ color: pct !== undefined ? pctColor(pct) : "#00d4e8" }}>{value}</span>
     </div>
   );
 }
@@ -95,8 +102,8 @@ export function ResourceUsage() {
         {isLoading && <RefreshCw className="w-3 h-3 animate-spin" style={{ color: "rgba(255,255,255,0.35)" }} />}
       </div>
       <div className="space-y-1.5">
-        <ResourceRow icon={<Cpu className="w-3.5 h-3.5" />} label="CPU" value={resources.cpu === null ? "--" : `${resources.cpu}%`} />
-        <ResourceRow icon={<MemoryStick className="w-3.5 h-3.5" />} label="RAM" value={resources.ram === null ? "--" : `${resources.ram}%`} />
+        <ResourceRow icon={<Cpu className="w-3.5 h-3.5" />} label="CPU" value={resources.cpu === null ? "--" : `${resources.cpu}%`} pct={resources.cpu} />
+        <ResourceRow icon={<MemoryStick className="w-3.5 h-3.5" />} label="RAM" value={resources.ram === null ? "--" : `${resources.ram}%`} pct={resources.ram} />
         <ResourceRow icon={<Box className="w-3.5 h-3.5" />} label="Containers" value={resources.containers === null ? "--" : String(resources.containers)} />
       </div>
       {error && <div className="mt-2 text-[10px] font-mono" style={{ color: "rgba(248,113,113,0.85)" }}>Resource API: {error}</div>}
