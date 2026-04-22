@@ -18,7 +18,7 @@ import {
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
-import { Search, Zap } from "lucide-react";
+import { Search, Zap, Wifi, WifiOff, Globe } from "lucide-react";
 import { useLang } from "../lib/lang";
 
 const SCALE_WHEEL_THRESHOLD = 90;
@@ -28,6 +28,7 @@ export function Dashboard({ onLogout }: { onLogout?: () => void } = {}) {
   const [selectedGroupId, setSelectedGroupId] = useState<number | null>(null);
   const [selectedDeviceIds, setSelectedDeviceIds] = useState<number[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState<"all" | "online" | "offline">("all");
   const [columns, setColumns] = useState(8);
   const [smallScreenEnabled, setSmallScreenEnabled] = useState(true);
   const [syncControlEnabled, setSyncControlEnabled] = useState(true);
@@ -58,7 +59,10 @@ export function Dashboard({ onLogout }: { onLogout?: () => void } = {}) {
       !searchQuery ||
       device.ip.includes(searchQuery) ||
       (device.model?.toLowerCase().includes(searchQuery.toLowerCase()) ?? false);
-    return matchesGroup && matchesSearch;
+    const matchesStatus =
+      statusFilter === "all" ||
+      (statusFilter === "online" ? device.status === "online" : device.status !== "online");
+    return matchesGroup && matchesSearch && matchesStatus;
   });
 
   const toggleDevice = (deviceId: number) => {
@@ -208,7 +212,14 @@ export function Dashboard({ onLogout }: { onLogout?: () => void } = {}) {
           selectedGroupId={selectedGroupId}
           onSelectGroup={(id) => {
             setSelectedGroupId(id);
-            setSelectedDeviceIds([]);
+            if (id !== null) {
+              const onlineInGroup = sortedDevices.filter(
+                (d) => d.groupId === id && d.status === "online"
+              );
+              setSelectedDeviceIds(onlineInGroup.map((d) => d.id));
+            } else {
+              setSelectedDeviceIds([]);
+            }
           }}
           selectedDeviceIds={selectedDeviceIds}
           onToggleDevice={toggleDevice}
@@ -249,6 +260,30 @@ export function Dashboard({ onLogout }: { onLogout?: () => void } = {}) {
                 fontFamily: "var(--app-font-sans)",
               }}
             />
+          </div>
+
+          {/* Online/Offline filter */}
+          <div className="flex items-center gap-1 shrink-0">
+            {(["all", "online", "offline"] as const).map((filter) => {
+              const Icon = filter === "online" ? Wifi : filter === "offline" ? WifiOff : Globe;
+              const label = filter === "all" ? "All" : filter === "online" ? "Online" : "Offline";
+              const active = statusFilter === filter;
+              return (
+                <button
+                  key={filter}
+                  onClick={() => setStatusFilter(filter)}
+                  className="h-7 px-2.5 rounded-md text-[11px] font-semibold flex items-center gap-1.5 transition-all"
+                  style={{
+                    background: active ? "rgba(0,212,232,0.15)" : "rgba(255,255,255,0.05)",
+                    border: active ? "1px solid rgba(0,212,232,0.35)" : "1px solid rgba(255,255,255,0.07)",
+                    color: active ? "#00d4e8" : "rgba(255,255,255,0.4)",
+                  }}
+                >
+                  <Icon className="w-3 h-3" />
+                  {label}
+                </button>
+              );
+            })}
           </div>
 
           {/* Full Automation button */}

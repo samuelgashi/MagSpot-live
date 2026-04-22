@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
-import { X, Plus, Terminal, Play } from "lucide-react";
+import { X, Plus, Terminal, Play, RefreshCw } from "lucide-react";
 import { useLang } from "../lib/lang";
 import { Device } from "@workspace/api-client-react";
 import { executeMagSpotAdbCommand } from "@/lib/magspotApi";
@@ -272,13 +272,36 @@ export function AdbCommandModal({ selectedCount, selectedDevices, onClose }: Adb
             </div>
 
             <div className="flex items-center justify-between shrink-0">
-              <button
-                onClick={() => setLog([])}
-                className="text-[11px] transition-all hover:opacity-80"
-                style={{ color: "rgba(255,255,255,0.3)" }}
-              >
-                {t.clearLog}
-              </button>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => setLog([])}
+                  className="text-[11px] transition-all hover:opacity-80"
+                  style={{ color: "rgba(255,255,255,0.3)" }}
+                >
+                  {t.clearLog}
+                </button>
+                <button
+                  onClick={async () => {
+                    setLog((prev) => [...prev, { id: Date.now(), text: "$ Restarting ADB server…", type: "cmd" }]);
+                    try {
+                      const res = await fetch("/api/devices/restart-adb", { method: "POST" });
+                      const json = await res.json();
+                      setLog((prev) => [
+                        ...prev,
+                        { id: Date.now() + 1, text: json.output || "ADB restarted.", type: "out" },
+                        ...(json.error ? [{ id: Date.now() + 2, text: json.error, type: "err" as const }] : []),
+                      ]);
+                    } catch (e: unknown) {
+                      setLog((prev) => [...prev, { id: Date.now() + 1, text: String(e), type: "err" }]);
+                    }
+                  }}
+                  className="text-[11px] flex items-center gap-1 transition-all hover:opacity-80"
+                  style={{ color: "rgba(255,255,255,0.3)" }}
+                >
+                  <RefreshCw className="w-3 h-3" />
+                  Restart ADB
+                </button>
+              </div>
               <a
                 href="https://developer.android.com/tools/adb"
                 target="_blank"

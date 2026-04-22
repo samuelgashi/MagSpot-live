@@ -66,6 +66,33 @@ export function safeLoadRecords(): DeviceRegistryMap {
   }
 }
 
+async function fetchRegistryFromApi(): Promise<DeviceRegistryMap | null> {
+  try {
+    const res = await fetch("/api/device-registry");
+    if (!res.ok) return null;
+    const json = await res.json();
+    return json?.data ?? null;
+  } catch {
+    return null;
+  }
+}
+
+async function pushRecordToApi(deviceId: string, record: DeviceRegistryRecord): Promise<void> {
+  try {
+    await fetch(`/api/device-registry/${encodeURIComponent(deviceId)}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(record),
+    });
+  } catch { /* ignore */ }
+}
+
+async function deleteRecordFromApi(deviceId: string): Promise<void> {
+  try {
+    await fetch(`/api/device-registry/${encodeURIComponent(deviceId)}`, { method: "DELETE" });
+  } catch { /* ignore */ }
+}
+
 export function saveDeviceModels(models: string[]): string[] {
   const normalized = models.reduce<string[]>((list, model) => {
     const trimmed = model.trim();
@@ -395,9 +422,21 @@ export function DeviceRegistryPanel({
     }));
   };
 
+  useEffect(() => {
+    fetchRegistryFromApi().then((apiData) => {
+      if (!apiData) return;
+      const merged = { ...safeLoadRecords(), ...apiData };
+      window.localStorage.setItem(DEVICE_REGISTRY_STORAGE_KEY, JSON.stringify(merged));
+      setRecords(merged);
+    });
+  }, []);
+
   const saveRecords = () => {
     window.localStorage.setItem(DEVICE_REGISTRY_STORAGE_KEY, JSON.stringify(records));
     window.dispatchEvent(new Event(DEVICE_REGISTRY_CHANGE_EVENT));
+    if (selectedKey !== "manual") {
+      pushRecordToApi(selectedKey, records[selectedKey] ?? emptyRecord(selectedNumber));
+    }
     onClose();
   };
 
@@ -409,6 +448,7 @@ export function DeviceRegistryPanel({
       window.dispatchEvent(new Event(DEVICE_REGISTRY_CHANGE_EVENT));
       return next;
     });
+    if (selectedKey !== "manual") deleteRecordFromApi(selectedKey);
     setIsClearConfirmOpen(false);
   };
 

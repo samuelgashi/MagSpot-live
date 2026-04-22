@@ -69,6 +69,35 @@ let apiKeys = new Map();
 let adbAvailable = true;
 let screenStreamHubs = new Map();
 
+// ─── Persistence helpers ──────────────────────────────────────────────────────
+const DATA_DIR = path.join(__dirname, 'data');
+if (!require('fs').existsSync(DATA_DIR)) require('fs').mkdirSync(DATA_DIR, { recursive: true });
+
+const DEVICES_FILE = path.join(DATA_DIR, 'devices.json');
+const REGISTRY_FILE = path.join(DATA_DIR, 'device_registry.json');
+
+function loadJson(file, fallback) {
+  try {
+    if (require('fs').existsSync(file)) return JSON.parse(require('fs').readFileSync(file, 'utf8'));
+  } catch (_) {}
+  return fallback;
+}
+
+function saveJson(file, data) {
+  try { require('fs').writeFileSync(file, JSON.stringify(data, null, 2), 'utf8'); } catch (_) {}
+}
+
+// Load persisted devices into the in-memory Map on startup
+const _persistedDevices = loadJson(DEVICES_FILE, []);
+for (const d of _persistedDevices) {
+  if (d && d.id) {
+    devices.set(d.id, { ...d, status: 'offline' }); // start as offline until ADB confirms
+  }
+}
+
+// Registry: { [deviceId]: { deviceNumber, deviceModel, vpnCountryCode, vpnCountryFlag, groupName } }
+let deviceRegistry = loadJson(REGISTRY_FILE, {});
+
 // Helper: Extract octet from IP
 function getOctet(ip) {
   const parts = ip.split('.');
@@ -353,7 +382,18 @@ function createScreenStreamHub(deviceId) {
   hub.addClient = (client) => {
     hub.clients.add(client);
     client.res.on('close', () => removeClient(client));
-    if (hub.latestFrame) writeFrame(client, hub.latestFrame);
+    if (hub.latestFrame) {
+      writeFrame(client, hub.latestFrame);
+    } else {
+      // Write an initial comment boundary so proxies don't close the connection
+      // before the first real screencap frame arrives
+      try {
+        if (!client.res.destroyed && !client.res.writableEnded) {
+          client.res.write(`--${client.boundary}\r\nContent-Type: text/plain\r\nContent-Length: 12\r\n\r\nconnecting...\r\n`);
+          if (typeof client.res.flush === 'function') client.res.flush();
+        }
+      } catch (_) { /* ignore */ }
+    }
     start();
   };
 
@@ -503,6 +543,7 @@ function refreshDevices() {
   }
   
   io.emit('devices:update', Array.from(devices.values()));
+  saveJson(DEVICES_FILE, Array.from(devices.values()));
 }
 
 // ─── Auth helpers (simple HS256 JWT using Node crypto) ───────────────────────
@@ -682,6 +723,166 @@ app.post('/api/disconnect_all_devices', (req, res) => {
   });
 });
 
+app.post('/api/devices/restart-adb', (req, res) => {
+  const killResult = adbExec('kill-server');
+  const startResult = adbExec('start-server');
+  // After restart, clear online statuses
+  for (const [id, device] of devices.entries()) {
+    device.status = 'offline';
+    devices.set(id, device);
+  }
+  io.emit('devices:update', Array.from(devices.values()));
+  // Refresh to pick up any auto-reconnected devices
+  setTimeout(() => refreshDevices(), 2000);
+  res.json({
+    success: startResult.success,
+    output: [killResult.output, startResult.output].filter(Boolean).join('\n'),
+    error: startResult.error || null
+  });
+});
+
+// ─── Activity definitions (mirrors Flask ACTIVITIES_ROUTES) ──────────────────
+const ACTIVITIES_ROUTES = {
+  stream_by_artist: {
+    name: "Stream By Artist",
+    endpoint: "/yt_music/stream_by_artist",
+    method: "POST",
+    icon: "youtube_music",
+    args: [
+      { index: 0, key: "artist_name", description: "Artist Name To Stream...", default: null, type: "input", is_required: false },
+      { index: 1, key: "artists_sheet_url", description: "Stream Multiple Artists! Provide Google Sheet URL...", default: null, type: "input", is_required: false },
+      { index: 2, key: "max_artists", description: "Maximum Artists To Pick [If Artists greater than Max_Artists]...", default: 10, type: "input", is_required: true },
+      { index: 3, key: "play_hours", description: "How many hours to stream Artist...", default: 7, type: "input", is_required: true },
+      { index: 4, key: "max_play_hours", description: "Maximum Play Hours Per Artist...", default: 7, type: "input", is_required: true },
+      { index: 5, key: "min_play_minutes", description: "Minimum Play Minutes Per Artist...", default: 10, type: "input", is_required: true },
+      { index: 6, key: "search_filter", description: "Search Filter For Artist...", default: "Artists", type: "select", is_required: true },
+      { index: 7, key: "device_id", description: "Device ID which should be used...", default: 10, type: "input", is_required: true },
+      { index: 8, key: "remarks", description: "Assign any Optional Name To Task...", default: "STREAM-BY-ARTIST", type: "input", is_required: false }
+    ],
+    kwaygs: [
+      { index: 0, key: "isOverrideResolution", description: "Select Yes If Your Devices Don't Have Display Panels", default: true, type: "checkbox", is_required: false },
+      { index: 1, key: "split_play_hours", description: "Split Play Hours Between Tasks", default: true, type: "checkbox", is_required: false },
+      { index: 2, key: "is_youtube_premium", description: "Is the devices containing youtube premium...", default: true, type: "checkbox", is_required: false },
+      { index: 3, key: "device_assignment", description: "Should The Entries Assigned Per Device [DEVICES > 1]", default: false, type: "checkbox", is_required: false },
+      { index: 4, key: "verify_internet_on_device", description: "Check Device Getting Internet Before Sending Task", default: true, type: "checkbox", is_required: false },
+      { index: 5, key: "release_Device", description: "Release The Device Forcily If Busy...", default: false, type: "checkbox", is_required: false },
+      { index: 6, key: "analyze_artiist_profile", description: "Analyze Current Artist Using Profile Thumbnail...", default: false, type: "checkbox", is_required: false }
+    ]
+  },
+  stream_by_library: {
+    name: "Stream By Library",
+    endpoint: "/yt_music/stream_by_library",
+    method: "POST",
+    icon: "youtube_music",
+    args: [
+      { index: 0, key: "playlist_name", description: "Provide Playlist Name To Stream...", default: null, type: "input", is_required: false },
+      { index: 1, key: "playlists_sheet_url", description: "Stream Multiple Playlist! Provide Google Sheet URL...", default: null, type: "input", is_required: false },
+      { index: 2, key: "max_playlists", description: "Maximum Playlists To Pick...", default: 10, type: "input", is_required: true },
+      { index: 3, key: "play_hours", description: "How many hours to stream Playlist...", default: 7, type: "input", is_required: true },
+      { index: 4, key: "max_play_hours", description: "Maximum Play Hours Per Playlist...", default: 7, type: "input", is_required: true },
+      { index: 5, key: "min_play_minutes", description: "Minimum Play Minutes Per Playlist...", default: 10, type: "input", is_required: true },
+      { index: 6, key: "fetch_saved_content_first", description: "Extract the content from library and match with above streaming list...", default: true, type: "checkbox", is_required: true },
+      { index: 7, key: "fetch_content_type", description: "Type of content to fetch from library...", default: ["Playlists", "Artists", "Albums", "Songs", "Profiles"], type: "select", is_required: true },
+      { index: 8, key: "device_id", description: "Device ID which should be used...", default: 10, type: "input", is_required: true },
+      { index: 9, key: "remarks", description: "Assign any Optional Name To Task...", default: "STREAM-BY-LIBRARY", type: "input", is_required: false }
+    ],
+    kwaygs: [
+      { index: 0, key: "isOverrideResolution", description: "Select Yes If Your Devices Don't Have Display Panels", default: true, type: "checkbox", is_required: false },
+      { index: 1, key: "split_play_hours", description: "Split Play Hours Between Tasks", default: true, type: "checkbox", is_required: false },
+      { index: 2, key: "is_youtube_premium", description: "Is the devices containing youtube premium...", default: true, type: "checkbox", is_required: false },
+      { index: 3, key: "device_assignment", description: "Should The Entries Assigned Per Device [DEVICES > 1]", default: false, type: "checkbox", is_required: false },
+      { index: 4, key: "verify_internet_on_device", description: "Check Device Getting Internet Before Sending Task", default: true, type: "checkbox", is_required: false },
+      { index: 5, key: "release_Device", description: "Release The Device Forcily If Busy...", default: false, type: "checkbox", is_required: false }
+    ]
+  },
+  stream_by_playlist: {
+    name: "Stream By Playlist",
+    endpoint: "/yt_music/stream_by_playlist",
+    method: "POST",
+    icon: "youtube_music",
+    args: [
+      { index: 0, key: "playlist_name", description: "Provide Playlist Name To Stream...", default: null, type: "input", is_required: false },
+      { index: 1, key: "playlists_sheet_url", description: "Stream Multiple Playlist! Provide Google Sheet URL...", default: null, type: "input", is_required: false },
+      { index: 2, key: "max_playlists", description: "Maximum Playlists To Pick...", default: 10, type: "input", is_required: true },
+      { index: 3, key: "play_hours", description: "How many hours to stream Playlist...", default: 7, type: "input", is_required: true },
+      { index: 4, key: "max_play_hours", description: "Maximum Play Hours Per Playlist...", default: 7, type: "input", is_required: true },
+      { index: 5, key: "min_play_minutes", description: "Minimum Play Minutes Per Playlist...", default: 10, type: "input", is_required: true },
+      { index: 6, key: "device_id", description: "Device ID which should be used...", default: 10, type: "input", is_required: true },
+      { index: 7, key: "remarks", description: "Assign any Optional Name To Task...", default: "STREAM-BY-PLAYLIST", type: "input", is_required: false }
+    ],
+    kwaygs: [
+      { index: 0, key: "isOverrideResolution", description: "Select Yes If Your Devices Don't Have Display Panels", default: true, type: "checkbox", is_required: false },
+      { index: 1, key: "split_play_hours", description: "Split Play Hours Between Tasks", default: true, type: "checkbox", is_required: false },
+      { index: 2, key: "is_youtube_premium", description: "Is the devices containing youtube premium...", default: true, type: "checkbox", is_required: false },
+      { index: 3, key: "device_assignment", description: "Should The Entries Assigned Per Device [DEVICES > 1]", default: false, type: "checkbox", is_required: false },
+      { index: 4, key: "verify_internet_on_device", description: "Check Device Getting Internet Before Sending Task", default: true, type: "checkbox", is_required: false },
+      { index: 5, key: "release_Device", description: "Release The Device Forcily If Busy...", default: false, type: "checkbox", is_required: false }
+    ]
+  },
+  google_warmup: {
+    name: "Google Warm-UP",
+    endpoint: "/google_chrome/google_warmup",
+    method: "POST",
+    icon: "google",
+    args: [
+      { index: 0, key: "search_keywords_sheet_url", description: "Search Keyword Sheet For Devices! Provide Google Sheet URL...", default: null, type: "input", is_required: true },
+      { index: 1, key: "sheet_row_number", description: "Google Sheet Keyword Row Number...", default: 1, type: "input", is_required: true },
+      { index: 2, key: "sites_limit", description: "Maximum Number Of Sites To Visit For Each Keyword...", default: 15, type: "input", is_required: true },
+      { index: 3, key: "site_scroll_limit", description: "Maximum Number of Time To Scroll On Site...", default: 5, type: "input", is_required: true },
+      { index: 4, key: "minimum_site_warmup_time", description: "How Long [Minutes] To Stay On Each Site [Minimum]...", default: 3, type: "input", is_required: true },
+      { index: 5, key: "maximum_site_warmup_time", description: "How Long [Minutes] To Stay On Each Site [Maximum]...", default: 15, type: "input", is_required: true },
+      { index: 6, key: "device_id", description: "Device ID which should be used...", default: 10, type: "input", is_required: true },
+      { index: 7, key: "remarks", description: "Assign any Optional Name To Task...", default: "GOOGLE-WARM-UP", type: "input", is_required: false }
+    ],
+    kwaygs: [
+      { index: 0, key: "isOverrideResolution", description: "Select Yes If Your Devices Don't Have Display Panels", default: true, type: "checkbox", is_required: false },
+      { index: 1, key: "verify_internet_on_device", description: "Check Device Getting Internet Before Sending Task", default: true, type: "checkbox", is_required: false },
+      { index: 2, key: "release_Device", description: "Release The Device Forcily If Busy...", default: false, type: "checkbox", is_required: false }
+    ]
+  },
+  stream_youtube_shorts: {
+    name: "Stream YouTube Shorts",
+    endpoint: "/youtube_api/stream_youtube_shorts",
+    method: "POST",
+    icon: "youtube",
+    args: [
+      { index: 0, key: "play_minutes", description: "How many minutes to stream Shorts...", default: 60, type: "input", is_required: true },
+      { index: 1, key: "max_play_minutes", description: "Maximum Play Minutes Per Short...", default: 5, type: "input", is_required: true },
+      { index: 2, key: "min_play_minutes", description: "Minimum Play Minutes Per Short...", default: 1, type: "input", is_required: true },
+      { index: 3, key: "device_id", description: "Device ID which should be used...", default: 10, type: "input", is_required: true },
+      { index: 4, key: "remarks", description: "Assign any Optional Name To Task...", default: "STREAM-YOUTUBE-SHORTS", type: "input", is_required: false }
+    ],
+    kwaygs: [
+      { index: 0, key: "isOverrideResolution", description: "Select Yes If Your Devices Don't Have Display Panels", default: true, type: "checkbox", is_required: false },
+      { index: 1, key: "verify_internet_on_device", description: "Check Device Getting Internet Before Sending Task", default: true, type: "checkbox", is_required: false },
+      { index: 2, key: "release_Device", description: "Release The Device Forcily If Busy...", default: false, type: "checkbox", is_required: false }
+    ]
+  }
+};
+
+app.get('/api/get_activities', (req, res) => {
+  res.json({ success: true, data: ACTIVITIES_ROUTES });
+});
+
+// ─── Device Registry CRUD ─────────────────────────────────────────────────────
+app.get('/api/device-registry', (req, res) => {
+  res.json({ success: true, data: deviceRegistry });
+});
+
+app.put('/api/device-registry/:deviceId', (req, res) => {
+  const { deviceId } = req.params;
+  const record = req.body || {};
+  deviceRegistry[deviceId] = { ...deviceRegistry[deviceId], ...record };
+  saveJson(REGISTRY_FILE, deviceRegistry);
+  res.json({ success: true, data: deviceRegistry[deviceId] });
+});
+
+app.delete('/api/device-registry/:deviceId', (req, res) => {
+  delete deviceRegistry[req.params.deviceId];
+  saveJson(REGISTRY_FILE, deviceRegistry);
+  res.json({ success: true });
+});
+
 app.get('/api/get_tunnel_status', (req, res) => {
   res.json({
     status: 'success',
@@ -741,7 +942,7 @@ app.get('/api/devices/stream', (req, res) => {
     'Content-Type': `multipart/x-mixed-replace; boundary=${boundary}`,
     'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
     'Pragma': 'no-cache',
-    'Connection': 'close',
+    'Transfer-Encoding': 'chunked',
     'X-Accel-Buffering': 'no'
   });
   if (typeof res.flushHeaders === 'function') res.flushHeaders();

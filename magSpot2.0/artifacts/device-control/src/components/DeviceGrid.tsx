@@ -499,13 +499,13 @@ function DeviceCard({
   t: ReturnType<typeof useLang>["t"];
 }) {
   const planIndicator = getPlanIndicatorStyle(getDevicePlanIndicator(device.id, savedSchedule, now));
-  const [dashboardStreamSrc, setDashboardStreamSrc] = useState(() => smallScreenEnabled ? getMagSpotDeviceStreamUrl(device, compact ? 1 : 2) : "");
+  const [dashboardStreamSrc, setDashboardStreamSrc] = useState(() => getMagSpotDeviceStreamUrl(device, compact ? 1 : 2));
   const [dashboardStreamError, setDashboardStreamError] = useState(false);
   const [controlError, setControlError] = useState<string | null>(null);
   const dashboardImageRef = useRef<HTMLImageElement>(null);
   const dashboardPointerRef = useRef<{ x: number; y: number; at: number } | null>(null);
   const dashboardRetryRef = useRef<number | null>(null);
-  const dashboardScrcpy = useMagSpotScrcpyVideo(device, smallScreenEnabled, compact ? 10 : 15, compact ? 360 : 540, compact ? 900_000 : 1_500_000);
+  const dashboardScrcpy = useMagSpotScrcpyVideo(device, true, compact ? 10 : 15, compact ? 360 : 540, compact ? 900_000 : 1_500_000);
   const registryRecord = safeLoadRecords()[String(device.id)];
   const deviceModel = registryRecord?.deviceModel?.trim() ?? "";
   const countryBadge = registryRecord?.vpnCountryCode
@@ -515,12 +515,12 @@ function DeviceCard({
   const contextCount = selectedDeviceIds.length;
 
   useEffect(() => {
-    setDashboardStreamSrc(smallScreenEnabled ? getMagSpotDeviceStreamUrl(device, compact ? 1 : 2) : "");
+    setDashboardStreamSrc(getMagSpotDeviceStreamUrl(device, compact ? 1 : 2));
     setDashboardStreamError(false);
     return () => {
       if (dashboardRetryRef.current) window.clearTimeout(dashboardRetryRef.current);
     };
-  }, [device.id, compact, smallScreenEnabled]);
+  }, [device.id, compact]);
 
   const getDashboardPoint = useCallback((event: React.PointerEvent | PointerEvent) => {
     const image = dashboardImageRef.current;
@@ -687,9 +687,9 @@ function DeviceCard({
             onPointerUp={handleDashboardPointerUp}
             onPointerCancel={() => { dashboardPointerRef.current = null; }}
             className="flex-1 relative overflow-hidden"
-            style={{ cursor: smallScreenEnabled ? "crosshair" : "pointer", background: "#05070c", touchAction: smallScreenEnabled ? "none" : "auto" }}
+            style={{ cursor: smallScreenEnabled ? "crosshair" : "default", background: "#05070c", touchAction: smallScreenEnabled ? "none" : "auto" }}
           >
-            {smallScreenEnabled && dashboardStreamSrc ? (
+            {dashboardStreamSrc ? (
               <>
                 <img
                   ref={dashboardImageRef}
@@ -712,11 +712,18 @@ function DeviceCard({
                   className="absolute inset-0 w-full h-full object-contain pointer-events-none"
                   style={{ opacity: dashboardScrcpy.connected ? 1 : 0 }}
                 />
+                {!smallScreenEnabled && (
+                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none" style={{ background: "rgba(0,0,0,0.18)" }}>
+                    <span className="text-[8px] font-mono tracking-widest" style={{ color: `rgba(${ACCENT_RGB},0.35)` }}>
+                      TOUCH OFF
+                    </span>
+                  </div>
+                )}
               </>
             ) : (
               <div className="absolute inset-0 flex items-center justify-center">
                 <span className="text-[8px] font-mono tracking-widest" style={{ color: `rgba(${ACCENT_RGB},0.22)` }}>
-                  SMALL SCREEN OFF
+                  CONNECTING…
                 </span>
               </div>
             )}
