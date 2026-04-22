@@ -213,13 +213,24 @@ function normalizeGroup(rawValue: unknown, index: number): Record<string, unknow
   const raw = getObject(rawValue);
   const backendId = getString(raw.group_id) ?? getString(raw.id) ?? `group-${index + 1}`;
   const numericId = getNumber(raw.id) ?? hashToPositiveInt(backendId);
+  const deviceBackendIds: string[] = Array.isArray(raw.devices)
+    ? (raw.devices as unknown[])
+        .map((d) => getString(getObject(d).serial_number))
+        .filter((s): s is string => typeof s === "string" && s.length > 0)
+    : [];
+  const deviceCount = deviceBackendIds.length > 0
+    ? deviceBackendIds.length
+    : Array.isArray(raw.devices)
+      ? (raw.devices as unknown[]).length
+      : getNumber(raw.deviceCount) ?? 0;
   return {
     id: numericId,
     backendId,
     name: getString(raw.name) ?? backendId,
     description: getString(raw.description) ?? null,
     color: getString(raw.color) ?? null,
-    deviceCount: Array.isArray(raw.devices) ? raw.devices.length : getNumber(raw.deviceCount) ?? 0,
+    deviceCount,
+    deviceBackendIds,
     createdAt: getString(raw.createdAt) ?? getString(raw.created_at) ?? new Date().toISOString(),
   };
 }
@@ -317,7 +328,11 @@ function adaptMagSpotRequest(
     });
   } else if (path === "/api/groups" && method === "POST") {
     nextPath = "/api/groups";
-    nextInit.body = JSON.stringify({ name: getString(body.name) ?? "Group" });
+    const groupColor = getString(body.color);
+    const groupBody: Record<string, unknown> = { name: getString(body.name) ?? "Group" };
+    if (groupColor) groupBody.color = groupColor;
+    if (getString(body.description)) groupBody.description = getString(body.description);
+    nextInit.body = JSON.stringify(groupBody);
   } else if (groupMatch) {
     nextPath = `/api/groups/${getBackendGroupId(Number(groupMatch[1]))}`;
   }

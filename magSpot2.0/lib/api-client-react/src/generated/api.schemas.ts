@@ -83,6 +83,7 @@ export interface Group {
   color?: string | null;
   deviceCount: number;
   createdAt: string;
+  deviceBackendIds?: string[];
 }
 
 export interface CreateGroupBody {

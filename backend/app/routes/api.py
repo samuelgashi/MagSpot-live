@@ -1,4 +1,4 @@
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, Response
 from . import api_bp as api_keys_bp
 import subprocess
 import socket
@@ -838,6 +838,63 @@ def get_system_resources():
             "status": "error",
             "message": str(e)
         }), 500
+
+
+# GET /api/devices/stream - MJPEG screencap stream
+@api_keys_bp.route('/devices/stream', methods=['GET'])
+def device_stream():
+    device_id = request.args.get('deviceId')
+    fps = max(1, min(int(request.args.get('fps', 2)), 15))
+
+    if not device_id:
+        return jsonify({'message': 'deviceId is required'}), 400
+
+    def generate():
+        while True:
+            try:
+                result = subprocess.run(
+                    [Config.ADB_PATH, '-s', device_id, 'exec-out', 'screencap', '-p'],
+                    capture_output=True,
+                    timeout=15,
+                )
+                if result.returncode == 0 and result.stdout:
+                    frame = result.stdout
+                    header = (
+                        b'--frame\r\n'
+                        b'Content-Type: image/png\r\n'
+                        b'Content-Length: ' + str(len(frame)).encode() + b'\r\n\r\n'
+                    )
+                    yield header + frame + b'\r\n'
+            except Exception:
+                break
+            time.sleep(1.0 / fps)
+
+    return Response(
+        generate(),
+        mimetype='multipart/x-mixed-replace; boundary=frame',
+    )
+
+
+# GET /api/devices/screenshot - Single screenshot (PNG)
+@api_keys_bp.route('/devices/screenshot', methods=['GET'])
+def device_screenshot():
+    device_id = request.args.get('deviceId')
+    if not device_id:
+        return jsonify({'message': 'deviceId is required'}), 400
+
+    try:
+        result = subprocess.run(
+            [Config.ADB_PATH, '-s', device_id, 'exec-out', 'screencap', '-p'],
+            capture_output=True,
+            timeout=15,
+        )
+        if result.returncode == 0 and result.stdout:
+            return Response(result.stdout, mimetype='image/png')
+        return jsonify({'message': 'Failed to capture screenshot'}), 500
+    except subprocess.TimeoutExpired:
+        return jsonify({'message': 'Screenshot timed out'}), 504
+    except Exception as e:
+        return jsonify({'message': str(e)}), 500
 
 
 # # POST /api/devices/restart-adb - Restart ADB server

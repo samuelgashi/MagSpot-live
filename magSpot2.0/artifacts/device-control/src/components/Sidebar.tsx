@@ -226,11 +226,21 @@ export function Sidebar({
     isDragActiveRef.current = false;
   }, []);
 
-  const getDeviceCountForGroup = (groupId: number | null) =>
-    groupId === null ? sortedDevices.length : sortedDevices.filter((d) => d.groupId === groupId).length;
+  const getDevicesForGroup = (groupId: number | null): Device[] => {
+    if (groupId === null) return sortedDevices;
+    const group = groups.find((g) => g.id === groupId);
+    if (group?.deviceBackendIds && group.deviceBackendIds.length > 0) {
+      return sortedDevices.filter(
+        (d) =>
+          d.groupId === groupId ||
+          group.deviceBackendIds!.includes(d.backendId as string)
+      );
+    }
+    return sortedDevices.filter((d) => d.groupId === groupId);
+  };
 
-  const getDevicesForGroup = (groupId: number | null) =>
-    groupId === null ? sortedDevices : sortedDevices.filter((d) => d.groupId === groupId);
+  const getDeviceCountForGroup = (groupId: number | null) =>
+    getDevicesForGroup(groupId).length;
 
   const getSelectedCountForGroup = (groupId: number | null) =>
     getDevicesForGroup(groupId).filter((device) => selectedDeviceIds.includes(device.id)).length;

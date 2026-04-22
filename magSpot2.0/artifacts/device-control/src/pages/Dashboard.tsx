@@ -53,8 +53,19 @@ export function Dashboard({ onLogout }: { onLogout?: () => void } = {}) {
 
   const sortedDevices = [...rawDevices].sort((a, b) => a.id - b.id);
 
+  const selectedGroup = selectedGroupId !== null ? groups.find((g) => g.id === selectedGroupId) : null;
+
   const filteredDevices = sortedDevices.filter((device) => {
-    const matchesGroup = selectedGroupId === null || device.groupId === selectedGroupId;
+    let matchesGroup: boolean;
+    if (selectedGroupId === null) {
+      matchesGroup = true;
+    } else if (selectedGroup?.deviceBackendIds && selectedGroup.deviceBackendIds.length > 0) {
+      matchesGroup =
+        device.groupId === selectedGroupId ||
+        selectedGroup.deviceBackendIds.includes(device.backendId as string);
+    } else {
+      matchesGroup = device.groupId === selectedGroupId;
+    }
     const matchesSearch =
       !searchQuery ||
       device.ip.includes(searchQuery) ||
