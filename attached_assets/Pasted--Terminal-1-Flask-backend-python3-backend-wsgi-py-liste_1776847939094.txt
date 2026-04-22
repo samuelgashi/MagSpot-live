@@ -1,0 +1,102 @@
+# Terminal 1 — Flask backend
+python3 backend/wsgi.py   # listens on port 9786 by default
+
+# Terminal 2 — magSpot 2.0 frontend
+PORT=5173 BASE_PATH=/ API_PROXY_TARGET=http://127.0.0.1:9786 \
+pnpm --dir magSpot2.0 --filter @workspace/device-control run dev
+
+
+I have authentication and API calling keys which might help if user not login through browser but have to key to send direct APIAAS requests.
+I want you to add the settings page from MagSpot frontend to magSpot2.0 because it allows user to create the api keys while he logged through browser.
+Right now its saying API or token not found because we disabled the clerk, now we have to remove it.
+All session authentication procedure happening in backend/app/utils/auth.py should use new concept removing the clerk auth.
+The initial password should be admin, admin. It will be reset using .env file, also add that in config.py
+User can also change the password from frontend, add that in settings page on magSpot2.0 frontend.
+Please check all other requirements related to auth and api key creations.
+Also remember we are using single user in database called "admin" [think so, you can check]
+
+Fronted Updates:
+- Resources not showing the usage results got from api [its showing --, --, 2]
+- Add a custom login, register page. User credentials from .env
+- Remove clerk completely, update app/utils/auth.py to use new concept of authentication [browser, api keys]
+- Add the settings page from magSpot frontend to magSpot2.0 frontend according to magSpot2.0 theme template.
+
+
+New Updates:
+- I am connecting to real devices and its showed on magSpot2.0 dashboard but live view not available. it says: :5173/api/devices/stream?deviceId=192.168.1.38%3A5555&fps=2&t=1776841106831:1  Failed to load resource: the server responded with a status of 404 (NOT FOUND). I think its bascause its using :5173? not PROXY_API_URL?
+- On MagSpot2.0 Dashboad Activities,section can you match the inputs with inputs got from activities from inputs? On old magSpot i was creating the inputs objects dynamically from activities arguments and kwargs. You can check the magSpot frontend for that. Implement that same here. One good thing on magSpot2.0 frontend activities it verifies the inputs and show the message, keep that there with new activities settings. Don't change the activities args, kwargs, names it is connected to backend/app/automation/handlers/stream_worker_node.py and backend/app/automation/activities/*.py
+- Turing off the "Small Screen" should not close the live view, it should make it user don't click, drag or swipe that the small android screen on dashboard. [but can with android large display view when clicking on it]
+- Check the magSpot2.0 "device" popup, you can see there is multiple inputs boxes, as per devices. You have to check if there is respective database in magSpot backend? if no create database tables in models and connect with frontend each device.
+- We have to save each device, even if got from adb or not [maybe on first it finds and later its not] but its data might be saved in database right? Check my magSpot backend, and see if devices are saving in database and keep's there so that device ID can we used as primary key as a relation on other tables?
+- Add a filter or radio button on magSpot2.0 frontend to show only online devices not online, also if we click the group from slidebar its should only select the live devices not offline.
+
+
+- Live Screen give error: DeviceGrid.tsx:108 WebSocket connection to 'ws://localhost:9786/api/devices/scrcpy-stream?deviceId=192.168.1.112%3A5555&maxFps=15&maxSize=540&bitRate=1500000' failed: start	@	DeviceGrid.tsx:108 (anonymous)	@	DeviceGrid.tsx:158
+- Checking groups on MagSpot2.0 Frontend [http://localhost:9786/api/groups] says 401 UNAUTORIZED. Please check all routes in backend/routes/* and see if all routes accepting the new auth concept?
+- On "Network Scan for ADB Devices" the add button is to close to popup right boundary, increase the size of popup and other stuffs according to length of row containing the "Add" button.
+- MagSpot2.0 frontend is showing the DeviceIP in device header, but i want the device name from Device Settings like "Galaxy S8+". While the IP host part looks very good on device header keep that as it is.
+
+
+- Still getting issue on live view, also Image streaming not working: WebSocket connection to 'ws://localhost:9786/api/devices/scrcpy-stream?deviceId=192.168.1.101%3A5555&maxFps=15&maxSize=540&bitRate=1500000' failed: 
+- Please make sure that ws-srcpy concept works on live-stream now all my devices are in my network, there is no cloudflared invovlement, everything local, even the devices.
+- In MagSpot2.0 frontend, activities,the name of input should be the key in upper case lettlers [replace '_' with ' ']. Add the description is show when user hover the "*" badge. Do this with all activities, and also the "Advanced Search" should be at the bottom of all artibutes even the devices tags.
+- Group Mangement -> Create Group popup shows transparents in background fix that, use same design template ass like others.
+- I tried to create group and add the device by right click on device and "Move to Group", it shows successfull but never arrived on Group created.
+
+
+- Still: DeviceGrid.tsx:108 WebSocket connection to 'ws://localhost:9786/api/devices/scrcpy-stream?deviceId=192.168.1.102%3A5555&maxFps=15&maxSize=540&bitRate=1500000' failed: Here is my devices in adb:
+magician@mag:~$ adb devices
+List of devices attached
+192.168.1.101:5555	device
+192.168.1.102:5555	device
+192.168.1.103:5555	device
+192.168.1.104:5555	device
+192.168.1.105:5555	device
+192.168.1.106:5555	device
+192.168.1.107:5555	device
+192.168.1.108:5555	device
+192.168.1.109:5555	device
+192.168.1.110:5555	device
+192.168.1.111:5555	device
+192.168.1.112:5555	device
+192.168.1.113:5555	device
+192.168.1.114:5555	device
+192.168.1.115:5555	device
+192.168.1.116:5555	device
+192.168.1.31:5555	device
+192.168.1.38:5555	device
+192.168.1.43:5555	device
+192.168.1.44:5555	device
+
+- MagSpot2.0 frontend, groups not working, i can see "Move to group" working and also fetching the groups but frontend is not adding in groups section, also color details not added:
+{
+    "count": 1,
+    "groups": [
+        {
+            "color": null,
+            "created_at": "Wed, 22 Apr 2026 08:34:38 GMT",
+            "description": null,
+            "devices": [
+                {
+                    "device_name": null,
+                    "id": "17b8042d-c359-4865-84b3-afc695523e84",
+                    "model_name": null,
+                    "serial_number": "192.168.1.44:5555"
+                },
+                {
+                    "device_name": null,
+                    "id": "ae921e1a-2e46-40f9-96dc-7b2276b2d35a",
+                    "model_name": null,
+                    "serial_number": "192.168.1.102:5555"
+                }
+            ],
+            "group_id": "b0b33ec1-a64a-4a89-bd49-ba4bd101604f",
+            "name": "Test",
+            "updated_at": "Wed, 22 Apr 2026 08:34:38 GMT"
+        }
+    ]
+}
+
+
+
+
