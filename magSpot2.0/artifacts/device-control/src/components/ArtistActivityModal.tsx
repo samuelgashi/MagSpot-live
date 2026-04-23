@@ -301,6 +301,20 @@ export function ArtistActivityModal({ kind = "artist", deviceIds, onClose, onSta
   const [dynamicActivity, setDynamicActivity] = useState<BackendActivity | null>(null);
   const [formData, setFormData] = useState<Record<string, unknown>>({});
   const [advancedOpen, setAdvancedOpen] = useState(false);
+  const [isMobile, setIsMobile] = useState(() => typeof window !== "undefined" && window.innerWidth < 640);
+  const advancedRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handler = () => setIsMobile(window.innerWidth < 640);
+    window.addEventListener("resize", handler);
+    return () => window.removeEventListener("resize", handler);
+  }, []);
+
+  useEffect(() => {
+    if (advancedOpen && advancedRef.current) {
+      setTimeout(() => advancedRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" }), 50);
+    }
+  }, [advancedOpen]);
 
   useEffect(() => {
     let cancelled = false;
@@ -397,10 +411,10 @@ export function ArtistActivityModal({ kind = "artist", deviceIds, onClose, onSta
 
   const modal = (
     <div
-      style={{ position: "fixed", inset: 0, zIndex: 9000, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(0,0,0,0.6)", backdropFilter: "blur(6px)" }}
+      style={{ position: "fixed", inset: 0, zIndex: 9000, display: "flex", alignItems: isMobile ? "flex-end" : "center", justifyContent: "center", background: "rgba(0,0,0,0.6)", backdropFilter: "blur(6px)" }}
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
-      <div style={{ width: 460, maxWidth: "calc(100vw - 32px)", maxHeight: "calc(100vh - 40px)", background: "rgba(18,22,30,0.97)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 16, boxShadow: "0 24px 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(0,212,232,0.08)", overflow: "hidden", display: "flex", flexDirection: "column" }}>
+      <div style={{ width: 460, maxWidth: "100vw", height: isMobile ? "92vh" : undefined, maxHeight: isMobile ? undefined : "calc(100vh - 40px)", background: "rgba(18,22,30,0.97)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: isMobile ? "16px 16px 0 0" : 16, boxShadow: "0 24px 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(0,212,232,0.08)", overflow: "hidden", display: "flex", flexDirection: "column" }}>
         {/* Header */}
         <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "16px 18px 14px", borderBottom: "1px solid rgba(255,255,255,0.07)", flexShrink: 0 }}>
           <div style={{ width: 28, height: 28, borderRadius: 8, background: `rgba(${ACCENT_RGB},0.12)`, border: `1px solid rgba(${ACCENT_RGB},0.2)`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
@@ -415,69 +429,72 @@ export function ArtistActivityModal({ kind = "artist", deviceIds, onClose, onSta
           </button>
         </div>
 
-        {/* Body */}
-        <div style={{ flex: 1, minHeight: 0, overflowY: "auto", padding: "16px 18px", display: "flex", flexDirection: "column", gap: 12 }}>
-          {!dynamicActivity && (
-            <div style={{ textAlign: "center", padding: "20px 0", color: "rgba(255,255,255,0.3)", fontSize: 12 }}>
-              Loading activity settings…
-            </div>
-          )}
+        {/* Body — scroll container only, no flex layout here */}
+        <div style={{ flex: 1, minHeight: 0, overflowY: "auto", WebkitOverflowScrolling: "touch" }}>
+          {/* Inner layout column */}
+          <div style={{ padding: "16px 18px", display: "flex", flexDirection: "column", gap: 12 }}>
+            {!dynamicActivity && (
+              <div style={{ textAlign: "center", padding: "20px 0", color: "rgba(255,255,255,0.3)", fontSize: 12 }}>
+                Loading activity settings…
+              </div>
+            )}
 
-          {dynamicActivity && argsToRender.length === 0 && (
-            <div style={{ textAlign: "center", padding: "12px 0", color: "rgba(255,255,255,0.3)", fontSize: 11 }}>
-              No configurable fields for this activity.
-            </div>
-          )}
+            {dynamicActivity && argsToRender.length === 0 && (
+              <div style={{ textAlign: "center", padding: "12px 0", color: "rgba(255,255,255,0.3)", fontSize: 11 }}>
+                No configurable fields for this activity.
+              </div>
+            )}
 
-          {dynamicActivity && argsToRender.map((field) => (
-            <FieldRow key={field.key} label={field.key.replace(/_/g, " ").toUpperCase()} required={field.is_required} description={field.description.replace(/\.\.\.$/, "")}>
-              {renderDynamicField(field, formData[field.key], (v) => setField(field.key, v))}
+            {dynamicActivity && argsToRender.map((field) => (
+              <FieldRow key={field.key} label={field.key.replace(/_/g, " ").toUpperCase()} required={field.is_required} description={field.description.replace(/\.\.\.$/, "")}>
+                {renderDynamicField(field, formData[field.key], (v) => setField(field.key, v))}
+              </FieldRow>
+            ))}
+
+            {validationErrors.length > 0 && (
+              <div style={{ border: "1px solid rgba(239,68,68,0.28)", background: "rgba(239,68,68,0.08)", borderRadius: 8, padding: "8px 10px", display: "flex", flexDirection: "column", gap: 4 }}>
+                {validationErrors.map((error) => (
+                  <div key={error} style={{ fontSize: 10, lineHeight: 1.4, color: "rgba(255,180,180,0.9)", fontWeight: 600 }}>{error}</div>
+                ))}
+              </div>
+            )}
+
+            <FieldRow label={`Device IDs · ${deviceIds.length} selected`}>
+              <div style={{ minHeight: 38, maxHeight: 88, overflowY: "auto", background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 8, padding: "6px 8px", display: "flex", flexWrap: "wrap", gap: 4, alignContent: "flex-start" }}>
+                {deviceIds.length === 0 ? (
+                  <span style={{ fontSize: 11, color: "rgba(255,255,255,0.25)", lineHeight: "26px", padding: "0 3px" }}>No devices selected</span>
+                ) : (
+                  deviceIds.map((id) => (
+                    <span key={id} style={{ fontSize: 10, fontWeight: 700, fontFamily: "var(--app-font-mono, monospace)", background: `rgba(${ACCENT_RGB},0.1)`, border: `1px solid rgba(${ACCENT_RGB},0.2)`, borderRadius: 4, padding: "2px 6px", color: ACCENT, lineHeight: 1.8 }}>
+                      {String(id).padStart(3, "0")}
+                    </span>
+                  ))
+                )}
+              </div>
             </FieldRow>
-          ))}
 
-          {validationErrors.length > 0 && (
-            <div style={{ border: "1px solid rgba(239,68,68,0.28)", background: "rgba(239,68,68,0.08)", borderRadius: 8, padding: "8px 10px", display: "flex", flexDirection: "column", gap: 4 }}>
-              {validationErrors.map((error) => (
-                <div key={error} style={{ fontSize: 10, lineHeight: 1.4, color: "rgba(255,180,180,0.9)", fontWeight: 600 }}>{error}</div>
-              ))}
-            </div>
-          )}
-
-          <FieldRow label={`Device IDs · ${deviceIds.length} selected`}>
-            <div style={{ minHeight: 38, maxHeight: 88, overflowY: "auto", background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 8, padding: "6px 8px", display: "flex", flexWrap: "wrap", gap: 4, alignContent: "flex-start" }}>
-              {deviceIds.length === 0 ? (
-                <span style={{ fontSize: 11, color: "rgba(255,255,255,0.25)", lineHeight: "26px", padding: "0 3px" }}>No devices selected</span>
-              ) : (
-                deviceIds.map((id) => (
-                  <span key={id} style={{ fontSize: 10, fontWeight: 700, fontFamily: "var(--app-font-mono, monospace)", background: `rgba(${ACCENT_RGB},0.1)`, border: `1px solid rgba(${ACCENT_RGB},0.2)`, borderRadius: 4, padding: "2px 6px", color: ACCENT, lineHeight: 1.8 }}>
-                    {String(id).padStart(3, "0")}
-                  </span>
-                ))
-              )}
-            </div>
-          </FieldRow>
-
-          {dynamicActivity && kwaygsList.length > 0 && (
-            <div style={{ border: "1px solid rgba(255,255,255,0.08)", borderRadius: 10, overflow: "hidden" }}>
-              <button
-                type="button"
-                onClick={() => setAdvancedOpen((v) => !v)}
-                style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "9px 12px", background: "rgba(255,255,255,0.03)", border: "none", cursor: "pointer", color: "rgba(255,255,255,0.55)", fontSize: 11, fontWeight: 600, letterSpacing: "0.04em", textTransform: "uppercase" }}
-              >
-                Advanced Settings
-                <ChevronDown style={{ width: 14, height: 14, transform: advancedOpen ? "rotate(180deg)" : "none", transition: "transform .15s" }} />
-              </button>
-              {advancedOpen && (
-                <div style={{ padding: "10px 12px", display: "flex", flexDirection: "column", gap: 10, borderTop: "1px solid rgba(255,255,255,0.06)" }}>
-                  {kwaygsList.map((field) => (
-                    <FieldRow key={field.key} label={field.key.replace(/_/g, " ").toUpperCase()} required={field.is_required} description={field.description.replace(/\.\.\.$/, "")}>
-                      {renderDynamicField(field, formData[field.key], (v) => setField(field.key, v))}
-                    </FieldRow>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
+            {dynamicActivity && kwaygsList.length > 0 && (
+              <div ref={advancedRef} style={{ border: "1px solid rgba(255,255,255,0.08)", borderRadius: 10, overflow: "hidden" }}>
+                <button
+                  type="button"
+                  onClick={() => setAdvancedOpen((v) => !v)}
+                  style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "9px 12px", background: "rgba(255,255,255,0.03)", border: "none", cursor: "pointer", color: "rgba(255,255,255,0.55)", fontSize: 11, fontWeight: 600, letterSpacing: "0.04em", textTransform: "uppercase" }}
+                >
+                  Advanced Settings
+                  <ChevronDown style={{ width: 14, height: 14, transform: advancedOpen ? "rotate(180deg)" : "none", transition: "transform .15s" }} />
+                </button>
+                {advancedOpen && (
+                  <div style={{ padding: "10px 12px", display: "flex", flexDirection: "column", gap: 10, borderTop: "1px solid rgba(255,255,255,0.06)" }}>
+                    {kwaygsList.map((field) => (
+                      <FieldRow key={field.key} label={field.key.replace(/_/g, " ").toUpperCase()} required={field.is_required} description={field.description.replace(/\.\.\.$/, "")}>
+                        {renderDynamicField(field, formData[field.key], (v) => setField(field.key, v))}
+                      </FieldRow>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Footer */}
