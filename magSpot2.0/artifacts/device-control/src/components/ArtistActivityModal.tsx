@@ -416,7 +416,7 @@ export function ArtistActivityModal({ kind = "artist", deviceIds, onClose, onSta
         </div>
 
         {/* Body */}
-        <div style={{ flex: 1, overflowY: "auto", padding: "16px 18px", display: "flex", flexDirection: "column", gap: 12 }}>
+        <div style={{ flex: 1, minHeight: 0, overflowY: "auto", padding: "16px 18px", display: "flex", flexDirection: "column", gap: 12 }}>
           {!dynamicActivity && (
             <div style={{ textAlign: "center", padding: "20px 0", color: "rgba(255,255,255,0.3)", fontSize: 12 }}>
               Loading activity settings…
@@ -444,7 +444,7 @@ export function ArtistActivityModal({ kind = "artist", deviceIds, onClose, onSta
           )}
 
           <FieldRow label={`Device IDs · ${deviceIds.length} selected`}>
-            <div style={{ minHeight: 38, background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 8, padding: "6px 8px", display: "flex", flexWrap: "wrap", gap: 4 }}>
+            <div style={{ minHeight: 38, maxHeight: 88, overflowY: "auto", background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 8, padding: "6px 8px", display: "flex", flexWrap: "wrap", gap: 4, alignContent: "flex-start" }}>
               {deviceIds.length === 0 ? (
                 <span style={{ fontSize: 11, color: "rgba(255,255,255,0.25)", lineHeight: "26px", padding: "0 3px" }}>No devices selected</span>
               ) : (
