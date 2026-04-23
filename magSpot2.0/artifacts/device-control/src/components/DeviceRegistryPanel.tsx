@@ -4,6 +4,7 @@ import { Device } from "@workspace/api-client-react";
 import { Save, Trash2, X } from "lucide-react";
 import { useLang } from "@/lib/lang";
 import { CountryOption, countryFlag, matchCountries } from "@/lib/countries";
+import { deviceStatusColor } from "@/lib/deviceUtils";
 
 const ACCENT = "#00d4e8";
 const ACCENT_RGB = "0,212,232";
@@ -505,7 +506,7 @@ export function DeviceRegistryPanel({
         }}
       >
         <aside
-          className={`sm:w-64 sm:shrink-0 flex flex-col ${mobileView === "list" ? "flex w-full sm:w-64" : "hidden sm:flex"}`}
+          className={`sm:w-64 sm:flex-none sm:shrink-0 flex flex-col ${mobileView === "list" ? "flex flex-1 w-full" : "hidden sm:flex"}`}
           style={{ borderRight: "1px solid rgba(255,255,255,0.07)", background: "rgba(255,255,255,0.025)" }}
         >
           <div className="h-14 flex items-center justify-between px-4" style={{ borderBottom: "1px solid rgba(255,255,255,0.07)" }}>
@@ -520,11 +521,11 @@ export function DeviceRegistryPanel({
             </button>
           </div>
 
-          <div className="flex-1 overflow-auto p-2">
+          <div className="flex-1 min-h-0 overflow-auto p-2">
             {sortedDevices.map((device, index) => {
               const num = String(index + 1).padStart(3, "0");
               const isSelected = device.id === selectedDeviceId;
-              const hasRecord = Boolean(records[String(device.id)]);
+              const statusColor = deviceStatusColor(device);
               return (
                 <button
                   key={device.id}
@@ -540,7 +541,7 @@ export function DeviceRegistryPanel({
                   <span className="font-mono text-[10px] truncate mx-2 flex-1" style={{ color: "rgba(255,255,255,0.34)" }}>
                     {device.ip}
                   </span>
-                  <span className="w-1.5 h-1.5 rounded-full" style={{ background: hasRecord ? ACCENT : "rgba(255,255,255,0.16)" }} />
+                  <span className="w-2 h-2 rounded-full shrink-0" style={{ background: statusColor, boxShadow: `0 0 4px ${statusColor}` }} />
                 </button>
               );
             })}
@@ -585,7 +586,7 @@ export function DeviceRegistryPanel({
             </div>
           </div>
 
-          <div className="flex-1 overflow-auto p-3 sm:p-5 space-y-4">
+          <div className="flex-1 min-h-0 overflow-auto p-3 sm:p-5 space-y-4">
             <Section title={t.deviceSection}>
               <div className="grid min-w-0 grid-cols-1 sm:grid-cols-[180px_minmax(180px,220px)_minmax(0,1fr)] gap-3">
                 <Field label={t.deviceNumber} value={record.deviceNumber} onChange={(value) => updateRecord({ deviceNumber: value })} />
