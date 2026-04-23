@@ -755,6 +755,23 @@ def execute_command():
     return jsonify(results)
 
 
+# GET /api/devices/device-name - Return cached ADB device_name for a device
+_device_name_cache = {}
+
+@api_bp.route('/devices/device-name', methods=['GET'])
+def get_device_name_api():
+    device_id = request.args.get('device_id', '').strip()
+    if not device_id:
+        return jsonify({'error': 'device_id required'}), 400
+    if device_id in _device_name_cache:
+        return jsonify({'device_name': _device_name_cache[device_id]})
+    result = adb_device_exec(device_id, 'shell settings get global device_name')
+    name = ''
+    if result['success'] and result['output'] and result['output'].strip().lower() != 'null':
+        name = result['output'].strip()
+    _device_name_cache[device_id] = name
+    return jsonify({'device_name': name})
+
 # POST /api/devices/live-control - Send tap/swipe/scroll via adb input
 # Per-device native screen size cache: { device_id: (w, h) }
 _screen_size_cache = {}

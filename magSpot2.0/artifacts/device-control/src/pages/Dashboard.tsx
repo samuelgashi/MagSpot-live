@@ -18,11 +18,12 @@ import {
 } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
-import { Search, Zap, Wifi, WifiOff, Globe, Keyboard, Monitor, Tag, Hash } from "lucide-react";
+import { Search, Zap, Wifi, WifiOff, Globe, Keyboard, Monitor, Usb, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import { useLang } from "../lib/lang";
 import { BROWSER_KEYCODE_MAP, isPrintableKey } from "@/lib/androidKeycodes";
 import { postMagSpotSyncCommand } from "@/lib/magspotApi";
 import { safeLoadRecords } from "../components/DeviceRegistryPanel";
+import { isUsbDevice } from "@/lib/deviceUtils";
 
 const SCALE_WHEEL_THRESHOLD = 90;
 
@@ -31,12 +32,13 @@ export function Dashboard({ onLogout }: { onLogout?: () => void } = {}) {
   const [selectedGroupId, setSelectedGroupId] = useState<number | null>(null);
   const [selectedDeviceIds, setSelectedDeviceIds] = useState<number[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState<"all" | "online" | "offline">("all");
+  const [statusFilter, setStatusFilter] = useState<"all" | "online" | "offline" | "usb">("all");
   const [columns, setColumns] = useState(8);
   const [smallScreenEnabled, setSmallScreenEnabled] = useState(false);
   const [syncControlEnabled, setSyncControlEnabled] = useState(false);
   const [streamEnabled, setStreamEnabled] = useState(false);
-  const [searchByMode, setSearchByMode] = useState<"name" | "ip">("name");
+  const [sortMode, setSortMode] = useState<"name" | "ip" | null>(null);
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [activePanel, setActivePanel] = useState<"network" | "adb" | "devices" | "schedule" | "tasks" | null>(null);
   const [showFullAutomation, setShowFullAutomation] = useState(false);
@@ -56,11 +58,21 @@ export function Dashboard({ onLogout }: { onLogout?: () => void } = {}) {
 
   const updateDevice = useUpdateDevice();
 
-  const sortedDevices = [...rawDevices].sort((a, b) => a.id - b.id);
+  const baseDevices = [...rawDevices].sort((a, b) => a.id - b.id);
 
   const selectedGroup = selectedGroupId !== null ? groups.find((g) => g.id === selectedGroupId) : null;
 
-  const filteredDevices = sortedDevices.filter((device) => {
+  const ipToNum = (ip: string): number => {
+    const parts = ip.split(":")[0].split(".").map(Number);
+    return parts.reduce((acc, part) => acc * 256 + (isNaN(part) ? 0 : part), 0);
+  };
+
+  const filteredDevices = baseDevices.filter((device) => {
+    const usb = isUsbDevice(device);
+    // USB devices only appear in USB filter; non-USB devices never appear in USB filter
+    if (statusFilter === "usb") return usb;
+    if (usb) return false;
+
     let matchesGroup: boolean;
     if (selectedGroupId === null) {
       matchesGroup = true;
@@ -71,24 +83,37 @@ export function Dashboard({ onLogout }: { onLogout?: () => void } = {}) {
     } else {
       matchesGroup = device.groupId === selectedGroupId;
     }
-    const ipHost = device.ip.split(':')[0];
-    const lastOctet = ipHost.split('.').pop() ?? '';
+    const ipHost = device.ip.split(":")[0];
+    const lastOctet = ipHost.split(".").pop() ?? "";
     const registryModel = safeLoadRecords()[String(device.id)]?.deviceModel?.trim() ?? "";
+    const deviceNameFromApi = (device as { name?: string }).name ?? "";
     const matchesSearch = !searchQuery || (() => {
       const q = searchQuery.toLowerCase();
-      if (searchByMode === "ip") {
-        return device.ip.includes(searchQuery) || lastOctet === searchQuery;
-      }
       return (
+        device.ip.includes(searchQuery) ||
+        lastOctet === searchQuery ||
         registryModel.toLowerCase().includes(q) ||
-        (device.model?.toLowerCase().includes(q) ?? false) ||
-        lastOctet === searchQuery
+        deviceNameFromApi.toLowerCase().includes(q) ||
+        (device.model?.toLowerCase().includes(q) ?? false)
       );
     })();
     const matchesStatus =
       statusFilter === "all" ||
       (statusFilter === "online" ? device.status === "online" : device.status !== "online");
     return matchesGroup && matchesSearch && matchesStatus;
+  });
+
+  const sortedDevices = [...filteredDevices].sort((a, b) => {
+    if (!sortMode) return baseDevices.indexOf(a) - baseDevices.indexOf(b);
+    let cmp = 0;
+    if (sortMode === "name") {
+      const nameA = ((a as { name?: string }).name ?? a.ip).toLowerCase();
+      const nameB = ((b as { name?: string }).name ?? b.ip).toLowerCase();
+      cmp = nameA.localeCompare(nameB);
+    } else {
+      cmp = ipToNum(a.ip) - ipToNum(b.ip);
+    }
+    return sortDir === "asc" ? cmp : -cmp;
   });
 
   const toggleDevice = (deviceId: number) => {
@@ -201,7 +226,7 @@ export function Dashboard({ onLogout }: { onLogout?: () => void } = {}) {
       {activePanel === "adb" && (
         <AdbCommandModal
           selectedCount={selectedDeviceIds.length}
-          selectedDevices={sortedDevices.filter((device) => selectedDeviceIds.includes(device.id))}
+          selectedDevices={baseDevices.filter((device) => selectedDeviceIds.includes(device.id))}
           onClose={() => setActivePanel(null)}
         />
       )}
@@ -210,13 +235,13 @@ export function Dashboard({ onLogout }: { onLogout?: () => void } = {}) {
       )}
       {activePanel === "devices" && (
         <DeviceRegistryPanel
-          devices={sortedDevices}
+          devices={baseDevices}
           onClose={() => setActivePanel(null)}
         />
       )}
       {activePanel === "schedule" && (
         <ScheduleResultsPanel
-          devices={sortedDevices}
+          devices={baseDevices}
           onClose={() => setActivePanel(null)}
           onCreatePlan={(scope) => {
             setSchedulePlanScope(scope);
@@ -231,11 +256,11 @@ export function Dashboard({ onLogout }: { onLogout?: () => void } = {}) {
             setShowFullAutomation(false);
             setSchedulePlanScope(null);
           }}
-          devices={schedulePlanScope ? sortedDevices.filter((device) => schedulePlanScope.deviceIds.includes(device.id)) : sortedDevices}
+          devices={schedulePlanScope ? baseDevices.filter((device) => schedulePlanScope.deviceIds.includes(device.id)) : baseDevices}
           initialDateKeys={schedulePlanScope?.dateKeys}
           scopedSave={!!schedulePlanScope}
           initialScheduleResult={schedulePlanScope?.baselineResult}
-          deviceNumberById={Object.fromEntries(sortedDevices.map((device, index) => [device.id, index + 1]))}
+          deviceNumberById={Object.fromEntries(baseDevices.map((device, index) => [device.id, index + 1]))}
         />
       )}
       {focusedDevice && (
@@ -243,7 +268,7 @@ export function Dashboard({ onLogout }: { onLogout?: () => void } = {}) {
           device={focusedDevice.device}
           displayNum={focusedDevice.displayNum}
           onClose={closeFocusedDevice}
-          controlDevices={syncControlEnabled && selectedDeviceIds.length > 0 ? filteredDevices.filter(d => selectedDeviceIds.includes(d.id)) : [focusedDevice.device]}
+          controlDevices={syncControlEnabled && selectedDeviceIds.length > 0 ? sortedDevices.filter(d => selectedDeviceIds.includes(d.id)) : [focusedDevice.device]}
           syncControlEnabled={syncControlEnabled}
           streamEnabled={streamEnabled}
         />
@@ -265,12 +290,12 @@ export function Dashboard({ onLogout }: { onLogout?: () => void } = {}) {
       >
         <Sidebar
           groups={groups}
-          sortedDevices={sortedDevices}
+          sortedDevices={baseDevices}
           selectedGroupId={selectedGroupId}
           onSelectGroup={(id) => {
             setSelectedGroupId(id);
             if (id !== null) {
-              const onlineInGroup = sortedDevices.filter(
+              const onlineInGroup = baseDevices.filter(
                 (d) => d.groupId === id && d.status === "online"
               );
               setSelectedDeviceIds(onlineInGroup.map((d) => d.id));
@@ -300,26 +325,6 @@ export function Dashboard({ onLogout }: { onLogout?: () => void } = {}) {
             borderBottom: "1px solid rgba(255,255,255,0.06)",
           }}
         >
-          <div className="flex items-center gap-1.5 shrink-0">
-            {(["name", "ip"] as const).map((mode) => {
-              const active = searchByMode === mode;
-              return (
-                <button
-                  key={mode}
-                  onClick={() => setSearchByMode(mode)}
-                  className="h-7 px-2 rounded-md text-[10px] font-semibold flex items-center gap-1 transition-all"
-                  style={{
-                    background: active ? "rgba(0,212,232,0.15)" : "rgba(255,255,255,0.05)",
-                    border: active ? "1px solid rgba(0,212,232,0.35)" : "1px solid rgba(255,255,255,0.07)",
-                    color: active ? "#00d4e8" : "rgba(255,255,255,0.4)",
-                  }}
-                >
-                  {mode === "name" ? <Tag className="w-3 h-3" /> : <Hash className="w-3 h-3" />}
-                  {mode === "name" ? "Name" : "IP"}
-                </button>
-              );
-            })}
-          </div>
           <div className="relative flex-1 max-w-xs">
             <Search
               className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 pointer-events-none"
@@ -327,7 +332,7 @@ export function Dashboard({ onLogout }: { onLogout?: () => void } = {}) {
             />
             <input
               type="search"
-              placeholder={searchByMode === "ip" ? "Search by IP / host…" : t.searchDevice}
+              placeholder={t.searchDevice}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full h-8 pl-8 pr-3 text-sm rounded-lg outline-none text-white placeholder-white/30"
@@ -339,7 +344,38 @@ export function Dashboard({ onLogout }: { onLogout?: () => void } = {}) {
             />
           </div>
 
-          {/* Online/Offline filter */}
+          {/* Sort buttons */}
+          <div className="flex items-center gap-1 shrink-0">
+            {(["name", "ip"] as const).map((mode) => {
+              const active = sortMode === mode;
+              const SortIcon = active ? (sortDir === "asc" ? ArrowUp : ArrowDown) : ArrowUpDown;
+              return (
+                <button
+                  key={mode}
+                  onClick={() => {
+                    if (sortMode === mode) {
+                      setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+                    } else {
+                      setSortMode(mode);
+                      setSortDir("asc");
+                    }
+                  }}
+                  title={`Sort by ${mode === "name" ? "device name" : "IP address"}`}
+                  className="h-7 px-2 rounded-md text-[10px] font-semibold flex items-center gap-1 transition-all"
+                  style={{
+                    background: active ? "rgba(0,212,232,0.15)" : "rgba(255,255,255,0.05)",
+                    border: active ? "1px solid rgba(0,212,232,0.35)" : "1px solid rgba(255,255,255,0.07)",
+                    color: active ? "#00d4e8" : "rgba(255,255,255,0.4)",
+                  }}
+                >
+                  <SortIcon className="w-3 h-3" />
+                  {mode === "name" ? "Name" : "IP"}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Status filter */}
           <div className="flex items-center gap-1 shrink-0">
             {(["all", "online", "offline"] as const).map((filter) => {
               const Icon = filter === "online" ? Wifi : filter === "offline" ? WifiOff : Globe;
@@ -361,6 +397,18 @@ export function Dashboard({ onLogout }: { onLogout?: () => void } = {}) {
                 </button>
               );
             })}
+            <button
+              onClick={() => setStatusFilter(statusFilter === "usb" ? "all" : "usb")}
+              className="h-7 px-2.5 rounded-md text-[11px] font-semibold flex items-center gap-1.5 transition-all"
+              style={{
+                background: statusFilter === "usb" ? "rgba(59,130,246,0.18)" : "rgba(255,255,255,0.05)",
+                border: statusFilter === "usb" ? "1px solid rgba(59,130,246,0.45)" : "1px solid rgba(255,255,255,0.07)",
+                color: statusFilter === "usb" ? "#3b82f6" : "rgba(255,255,255,0.4)",
+              }}
+            >
+              <Usb className="w-3 h-3" />
+              USB
+            </button>
           </div>
 
           {/* Real Time Display toggle */}
@@ -446,8 +494,8 @@ export function Dashboard({ onLogout }: { onLogout?: () => void } = {}) {
 
         <div ref={gridScrollRef} className="flex-1 overflow-auto p-4" style={{ overscrollBehavior: "contain" }}>
           <DeviceGrid
-            sortedDevices={sortedDevices}
-            filteredDevices={filteredDevices}
+            sortedDevices={baseDevices}
+            filteredDevices={sortedDevices}
             columns={effectiveCols}
             isLoading={isLoading}
             selectedDeviceIds={selectedDeviceIds}

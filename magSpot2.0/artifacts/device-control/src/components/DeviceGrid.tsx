@@ -8,7 +8,7 @@ import { DEVICE_REGISTRY_CHANGE_EVENT, DEVICE_REGISTRY_STORAGE_KEY, emptyRecord,
 import { CountryOption, countryFlag, matchCountries } from "@/lib/countries";
 import { loadSavedScheduleResult, SavedScheduleResult } from "@/lib/scheduleResults";
 import { getDevicePlanIndicator, getPlanIndicatorStyle } from "@/lib/devicePlanIndicator";
-import { postMagSpotStartScrcpyServer, getMagSpotDeviceWsImageStreamUrl, getMagSpotDeviceScrcpyStreamUrl, getMagSpotDeviceStreamUrl, postMagSpotDeviceAction, postMagSpotLiveControlToDevices, postMagSpotSyncCommand } from "@/lib/magspotApi";
+import { postMagSpotStartScrcpyServer, getMagSpotDeviceWsImageStreamUrl, getMagSpotDeviceScrcpyStreamUrl, getMagSpotDeviceStreamUrl, postMagSpotDeviceAction, postMagSpotLiveControlToDevices, postMagSpotSyncCommand, getMagSpotDeviceName, getMagSpotDeviceBackendId, buildMagSpotApiUrl, getMagSpotHeaders } from "@/lib/magspotApi";
 import { BROWSER_KEYCODE_MAP, keyMetaState, isPrintableKey } from "@/lib/androidKeycodes";
 import {
   ContextMenu,
@@ -20,6 +20,7 @@ import {
   ContextMenuSubTrigger,
   ContextMenuTrigger,
 } from "@/components/ui/context-menu";
+import { isUsbDevice, deviceStatusColor } from "@/lib/deviceUtils";
 
 const ACCENT = "#00d4e8";
 const ACCENT_RGB = "0,212,232";
@@ -28,6 +29,29 @@ const ORIGIN_ACCENT_RGB = "168,85,247";
 const DRAG_THRESHOLD = 6; // px before rubber-band activates
 const DOUBLE_CLICK_WINDOW_MS = 240;
 const PHONE_ASPECT_HEIGHT_OVER_WIDTH = 1024 / 509;
+
+function useDeviceNames(devices: { id: number; ip?: string; [key: string]: unknown }[]): Record<number, string> {
+  const [names, setNames] = React.useState<Record<number, string>>({});
+  const fetchedRef = React.useRef<Set<number>>(new Set());
+  const idsKey = devices.map((d) => d.id).join(",");
+  React.useEffect(() => {
+    devices.forEach((device) => {
+      if (fetchedRef.current.has(device.id)) return;
+      fetchedRef.current.add(device.id);
+      const deviceId = getMagSpotDeviceBackendId(device as Parameters<typeof getMagSpotDeviceBackendId>[0]);
+      const url = buildMagSpotApiUrl(`/api/devices/device-name?device_id=${encodeURIComponent(deviceId)}`);
+      fetch(url, { headers: getMagSpotHeaders() })
+        .then((r) => (r.ok ? r.json() : null))
+        .then((data) => {
+          if (data?.device_name) {
+            setNames((prev) => ({ ...prev, [device.id]: data.device_name }));
+          }
+        })
+        .catch(() => {});
+    });
+  }, [idsKey]);
+  return names;
+}
 
 function getNalHeaderOffset(data: Uint8Array) {
   return data[2] === 1 ? 3 : 4;
@@ -625,6 +649,7 @@ export function DeviceGrid({
   const overlayRef = useRef<HTMLDivElement>(null);
   const [now, setNow] = useState(() => new Date());
   const [registryVersion, setRegistryVersion] = useState(0);
+  const deviceNames = useDeviceNames(sortedDevices);
 
   const dragStartRef = useRef<{ x: number; y: number; device: Device; displayNum: number } | null>(null);
   const isDragActiveRef = useRef(false);
@@ -851,6 +876,7 @@ export function DeviceGrid({
               key={device.id}
               device={device}
               displayNum={displayNum}
+              deviceName={deviceNames[device.id] ?? (device as { name?: string }).name ?? ""}
               isSelected={isSelected}
               isFocusedOrigin={isFocusedOrigin}
               onCardMouseDown={(e) => handleBarMouseDown(e, device, displayNum)}
@@ -878,6 +904,7 @@ export function DeviceGrid({
 function DeviceCard({
   device,
   displayNum,
+  deviceName,
   isSelected,
   isFocusedOrigin,
   onCardMouseDown,
@@ -897,6 +924,7 @@ function DeviceCard({
 }: {
   device: Device;
   displayNum: number;
+  deviceName: string;
   isSelected: boolean;
   isFocusedOrigin: boolean;
   onCardMouseDown: (e: React.MouseEvent) => void;
@@ -1044,16 +1072,23 @@ function DeviceCard({
               userSelect: "none",
             }}
           >
+            {/* Status dot */}
+            <div
+              className="w-1.5 h-1.5 rounded-full shrink-0 mr-0.5"
+              style={{ backgroundColor: deviceStatusColor(device), boxShadow: `0 0 4px ${deviceStatusColor(device)}` }}
+            />
+
+            {/* IP last octet (replaces count number) */}
             <span
               className="font-mono font-bold leading-none shrink-0"
               style={{
                 fontSize: compact ? "9px" : "11px",
                 color: isFocusedOrigin ? ORIGIN_ACCENT : isSelected ? ACCENT : "rgba(255,255,255,0.85)",
-                width: "3ch",
+                minWidth: "2ch",
                 textAlign: "right",
               }}
             >
-              {displayNum}
+              {isUsbDevice(device) ? (device.ip ?? "USB").split(":")[0].slice(0, 4) : (device.ip ?? "").split(":")[0].split(".").pop() ?? "—"}
             </span>
 
             {!compact && (
@@ -1061,15 +1096,12 @@ function DeviceCard({
                 className="font-mono leading-none truncate flex-1 text-center mx-1"
                 style={{ fontSize: "8px", color: "rgba(255,255,255,0.38)" }}
               >
-                {(() => {
-                  const octet = device.ip.split(':')[0].split('.').pop() ?? '';
-                  return deviceModel ? `${octet} ${deviceModel}` : octet || device.ip;
-                })()}
+                {deviceName || deviceModel || device.ip}
               </span>
             )}
 
             <div className="flex items-center gap-1.5 shrink-0">
-              {deviceModel && (
+              {(deviceName || deviceModel) && (
                 <span
                   className="font-mono leading-none px-1.5 py-0.5 rounded max-w-[76px] truncate"
                   style={{
@@ -1260,6 +1292,8 @@ export function DeviceFocusModal({
   const [screenError, setScreenError] = useState<string | null>(null);
   const modalStreamEnabled = streamEnabled !== false;
   const focusedStream = useScrcpyDirectVideo(device, modalStreamEnabled, SCRCPY_FPS, SCRCPY_MAX_SIZE, SCRCPY_BITRATE, SCRCPY_IFRAME_SECS, SCRCPY_ENCODER);
+  const modalDeviceNames = useDeviceNames([device]);
+  const adbDeviceName = modalDeviceNames[device.id] ?? (device as { name?: string }).name ?? "";
   const [now, setNow] = useState(() => new Date());
   const [position, setPosition] = useState(() => ({
     x: Math.max(24, Math.round(window.innerWidth / 2 - 170)),
@@ -1568,27 +1602,23 @@ export function DeviceFocusModal({
             }}
           >
             <div className="flex items-center gap-2 min-w-0">
+              <div
+                className="w-1.5 h-1.5 rounded-full shrink-0"
+                style={{ backgroundColor: deviceStatusColor(device), boxShadow: `0 0 4px ${deviceStatusColor(device)}` }}
+              />
               <span
                 className="font-mono font-bold leading-none shrink-0"
-                style={{
-                  fontSize: "11px",
-                  color: ACCENT,
-                  width: "3ch",
-                  textAlign: "right",
-                }}
+                style={{ fontSize: "11px", color: ACCENT, minWidth: "2ch", textAlign: "right" }}
               >
-                {displayNum}
+                {isUsbDevice(device) ? (device.ip ?? "USB").split(":")[0].slice(0, 4) : (device.ip ?? "").split(":")[0].split(".").pop() ?? "—"}
               </span>
               <span className="font-mono leading-none truncate" style={{ fontSize: "8px", color: "#7f8791" }}>
-                {(() => {
-                  const octet = device.ip.split(':')[0].split('.').pop() ?? '';
-                  return deviceModel ? `${octet} ${deviceModel}` : octet || device.ip;
-                })()}
+                {adbDeviceName || deviceModel || device.ip}
               </span>
             </div>
 
             <div className="flex items-center gap-2 shrink-0">
-              {deviceModel && (
+              {(adbDeviceName || deviceModel) && (
                 <span
                   className="font-mono leading-none px-1.5 py-0.5 rounded max-w-[112px] truncate"
                   style={{

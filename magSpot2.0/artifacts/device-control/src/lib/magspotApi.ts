@@ -400,3 +400,16 @@ export async function changeMagSpotPassword(currentPassword: string, newPassword
   });
   return readJsonOrThrow<{ message: string }>(response, "Failed to change password");
 }
+
+export async function getMagSpotDeviceName(device: { ip?: string; id: number; [key: string]: unknown }): Promise<string> {
+  const deviceId = getMagSpotDeviceBackendId(device as Parameters<typeof getMagSpotDeviceBackendId>[0]);
+  const url = buildMagSpotApiUrl(`/api/devices/device-name?device_id=${encodeURIComponent(deviceId)}`);
+  try {
+    const resp = await fetch(url, { headers: getMagSpotHeaders() });
+    if (!resp.ok) return "";
+    const data = await resp.json();
+    return typeof data.device_name === "string" ? data.device_name : "";
+  } catch {
+    return "";
+  }
+}
