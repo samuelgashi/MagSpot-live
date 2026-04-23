@@ -506,7 +506,7 @@ export function DeviceRegistryPanel({
         }}
       >
         <aside
-          className={`sm:w-64 sm:flex-none sm:shrink-0 flex flex-col ${mobileView === "list" ? "flex flex-1 w-full" : "hidden sm:flex"}`}
+          className={`sm:w-64 sm:flex-none sm:shrink-0 flex flex-col ${mobileView === "list" ? "flex flex-1 min-h-0 w-full" : "hidden sm:flex"}`}
           style={{ borderRight: "1px solid rgba(255,255,255,0.07)", background: "rgba(255,255,255,0.025)" }}
         >
           <div className="h-14 flex items-center justify-between px-4" style={{ borderBottom: "1px solid rgba(255,255,255,0.07)" }}>
@@ -548,7 +548,7 @@ export function DeviceRegistryPanel({
           </div>
         </aside>
 
-        <main className={`flex-1 flex flex-col min-w-0 ${mobileView === "form" ? "flex" : "hidden sm:flex"}`}>
+        <main className={`flex-1 min-h-0 flex flex-col min-w-0 ${mobileView === "form" ? "flex" : "hidden sm:flex"}`}>
           <div className="h-14 shrink-0 flex items-center justify-between px-4 sm:px-5" style={{ borderBottom: "1px solid rgba(255,255,255,0.07)" }}>
             <div className="flex items-center gap-3 min-w-0">
               <button

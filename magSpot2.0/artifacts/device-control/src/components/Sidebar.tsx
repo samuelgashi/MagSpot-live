@@ -12,6 +12,7 @@ import { FocusedDevice } from "./DeviceGrid";
 import { ResourceUsage } from "./ResourceUsage";
 import { loadSavedScheduleResult } from "@/lib/scheduleResults";
 import { getDevicePlanIndicator, getPlanIndicatorStyle } from "@/lib/devicePlanIndicator";
+import { deviceStatusColor } from "@/lib/deviceUtils";
 import {
   ContextMenu,
   ContextMenuContent,
@@ -284,6 +285,7 @@ export function Sidebar({
           const isFocusedOrigin = focusedDeviceId === device.id;
           const planIndicator = getPlanIndicatorStyle(getDevicePlanIndicator(device.id, savedSchedule, now));
 
+          const statusDotColor = deviceStatusColor(device);
           return (
             <button
               key={device.id}
@@ -313,7 +315,7 @@ export function Sidebar({
             >
               <span
                 className="absolute top-[3px] right-[3px] w-[4px] h-[4px] rounded-full pointer-events-none"
-                style={{ backgroundColor: planIndicator.bg, boxShadow: `0 0 4px ${planIndicator.glow}` }}
+                style={{ backgroundColor: statusDotColor, boxShadow: `0 0 5px ${statusDotColor}` }}
               />
               {num.toString().padStart(2, "0")}
             </button>
