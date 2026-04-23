@@ -1232,9 +1232,19 @@ function DeviceCard({
           className="text-sm text-white/80 focus:bg-white/10 focus:text-white cursor-pointer flex items-center gap-2"
           onClick={connectRealtimeDisplay}
         >
-          <Wifi className="w-3.5 h-3.5 shrink-0" style={{ color: shouldStream ? "#a855f7" : "#00d4e8" }} />
-          {shouldStream ? "Reconnect Realtime Display" : "Connect Realtime Display"}
+          <Wifi className="w-3.5 h-3.5 shrink-0" style={{ color: "#00d4e8" }} />
+          Connect Display
         </ContextMenuItem>
+        {shouldStream && (
+          <ContextMenuItem
+            className="text-sm cursor-pointer flex items-center gap-2 focus:bg-white/10"
+            style={{ color: "rgba(239,68,68,0.85)" }}
+            onClick={() => setLocalStreamEnabled(false)}
+          >
+            <Wifi className="w-3.5 h-3.5 shrink-0" style={{ color: "rgba(239,68,68,0.75)" }} />
+            Disconnect Display
+          </ContextMenuItem>
+        )}
         <ContextMenuSeparator />
         <ContextMenuSub>
           <ContextMenuSubTrigger className="text-sm text-white/80 focus:bg-white/10 focus:text-white">
