@@ -95,9 +95,9 @@ export function TaskManagerPanel({ onClose }: { onClose: () => void }) {
   };
 
   return createPortal(
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-5" style={{ background: "rgba(0,0,0,0.58)", backdropFilter: "blur(5px)" }}>
-      <div className="w-full max-w-6xl h-[82vh] rounded-2xl overflow-hidden flex flex-col" style={{ background: "rgba(10,13,22,0.98)", border: "1px solid rgba(255,255,255,0.12)", boxShadow: "0 28px 90px rgba(0,0,0,0.72)" }}>
-        <div className="h-14 flex items-center justify-between px-5 shrink-0" style={{ borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
+    <div className="fixed inset-0 z-[9999] flex items-end sm:items-center justify-center p-0 sm:p-4" style={{ background: "rgba(0,0,0,0.58)", backdropFilter: "blur(5px)" }}>
+      <div className="w-full sm:max-w-6xl h-[92vh] sm:h-[82vh] rounded-t-2xl sm:rounded-2xl overflow-hidden flex flex-col" style={{ background: "rgba(10,13,22,0.98)", border: "1px solid rgba(255,255,255,0.12)", boxShadow: "0 28px 90px rgba(0,0,0,0.72)" }}>
+        <div className="h-14 flex items-center justify-between px-4 sm:px-5 shrink-0" style={{ borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: `rgba(${ACCENT_RGB},0.12)`, border: `1px solid rgba(${ACCENT_RGB},0.28)` }}>
               <ListTodo className="w-4 h-4" style={{ color: ACCENT }} />
@@ -112,7 +112,7 @@ export function TaskManagerPanel({ onClose }: { onClose: () => void }) {
           </button>
         </div>
 
-        <div className="flex-1 overflow-auto p-5 space-y-4">
+        <div className="flex-1 overflow-auto p-3 sm:p-5 space-y-4">
           <div className="flex flex-wrap gap-2 justify-end">
             <PanelButton onClick={refreshTasks} disabled={loadingAll} icon={loadingAll ? Loader2 : List} label={loadingAll ? "Loading..." : "Get All Tasks"} />
             <PanelButton onClick={stopAll} icon={StopCircle} label="Stop All Tasks" danger />

@@ -171,17 +171,17 @@ export function AdbCommandModal({ selectedCount, selectedDevices, onClose }: Adb
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center"
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4"
       style={{ background: "rgba(0,0,0,0.6)", backdropFilter: "blur(4px)" }}
       onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
       <div
-        className="w-[700px] rounded-2xl flex flex-col overflow-hidden"
+        className="w-full sm:max-w-[700px] rounded-t-2xl sm:rounded-2xl flex flex-col overflow-hidden"
         style={{
           background: "rgba(10,14,24,0.97)",
           border: "1px solid rgba(255,255,255,0.1)",
           boxShadow: "0 24px 64px rgba(0,0,0,0.6)",
-          maxHeight: "80vh",
+          maxHeight: "90vh",
         }}
         onMouseDown={(e) => e.stopPropagation()}
       >
@@ -210,7 +210,7 @@ export function AdbCommandModal({ selectedCount, selectedDevices, onClose }: Adb
         </div>
 
         {/* Body */}
-        <div className="flex flex-1 overflow-hidden min-h-0">
+        <div className="flex flex-col sm:flex-row flex-1 overflow-hidden min-h-0">
           {/* Left: command input + log */}
           <div className="flex flex-col flex-1 overflow-hidden p-4 gap-3">
             <div className="flex items-center gap-2 shrink-0">
@@ -316,8 +316,8 @@ export function AdbCommandModal({ selectedCount, selectedDevices, onClose }: Adb
 
           {/* Right: saved commands */}
           <div
-            className="w-[220px] shrink-0 flex flex-col overflow-hidden relative"
-            style={{ borderLeft: "1px solid rgba(255,255,255,0.07)" }}
+            className="w-full sm:w-[220px] shrink-0 flex flex-col overflow-hidden relative"
+            style={{ borderTop: "1px solid rgba(255,255,255,0.07)" }}
           >
             {/* Saved header */}
             <div

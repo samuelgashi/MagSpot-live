@@ -39,7 +39,14 @@ export function Dashboard({ onLogout }: { onLogout?: () => void } = {}) {
   const [streamEnabled, setStreamEnabled] = useState(false);
   const [sortMode, setSortMode] = useState<"name" | "ip" | null>(null);
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
+  const [isMobile, setIsMobile] = useState(() => typeof window !== "undefined" && window.innerWidth < 768);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+
+  useEffect(() => {
+    const handler = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener("resize", handler);
+    return () => window.removeEventListener("resize", handler);
+  }, []);
   const [activePanel, setActivePanel] = useState<"network" | "adb" | "devices" | "schedule" | "tasks" | null>(null);
   const [showFullAutomation, setShowFullAutomation] = useState(false);
   const [schedulePlanScope, setSchedulePlanScope] = useState<SchedulePlanScope | null>(null);
@@ -285,8 +292,8 @@ export function Dashboard({ onLogout }: { onLogout?: () => void } = {}) {
 
       {/* Collapsible sidebar */}
       <div
-        className="shrink-0 overflow-hidden transition-[width] duration-300 ease-in-out"
-        style={{ width: sidebarCollapsed ? 0 : 300 }}
+        className="overflow-hidden transition-[width] duration-300 ease-in-out"
+        style={{ width: sidebarCollapsed ? 0 : (isMobile ? "calc(100vw - 48px)" : 300), flexShrink: isMobile ? 0 : 0 }}
       >
         <Sidebar
           groups={groups}
@@ -317,7 +324,7 @@ export function Dashboard({ onLogout }: { onLogout?: () => void } = {}) {
         />
       </div>
 
-      <main className="flex-1 flex flex-col h-full overflow-hidden">
+      <main className={`flex-1 flex-col h-full overflow-hidden ${isMobile ? "hidden" : "flex"}`}>
         <div
           className="h-14 flex items-center px-5 gap-4 shrink-0"
           style={{

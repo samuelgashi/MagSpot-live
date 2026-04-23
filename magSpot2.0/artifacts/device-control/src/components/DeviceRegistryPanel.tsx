@@ -395,6 +395,7 @@ export function DeviceRegistryPanel({
   const [records, setRecords] = useState<DeviceRegistryMap>(() => safeLoadRecords());
   const [selectedDeviceId, setSelectedDeviceId] = useState<number | null>(() => sortedDevices[0]?.id ?? null);
   const [isClearConfirmOpen, setIsClearConfirmOpen] = useState(false);
+  const [mobileView, setMobileView] = useState<"list" | "form">("list");
   const selectedIndex = sortedDevices.findIndex((device) => device.id === selectedDeviceId);
   const selectedDevice = selectedIndex >= 0 ? sortedDevices[selectedIndex] : null;
   const selectedNumber = selectedIndex >= 0 ? String(selectedIndex + 1).padStart(3, "0") : "001";
@@ -459,7 +460,7 @@ export function DeviceRegistryPanel({
   };
 
   return createPortal(
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-5" style={{ background: "rgba(0,0,0,0.56)", backdropFilter: "blur(5px)" }}>
+    <div className="fixed inset-0 z-[9999] flex items-end sm:items-center justify-center p-0 sm:p-5" style={{ background: "rgba(0,0,0,0.56)", backdropFilter: "blur(5px)" }}>
       {isClearConfirmOpen ? (
         <div className="absolute inset-0 z-20 flex items-center justify-center p-5" style={{ background: "rgba(0,0,0,0.36)" }}>
           <div
@@ -496,14 +497,17 @@ export function DeviceRegistryPanel({
         </div>
       ) : null}
       <div
-        className="w-full max-w-6xl h-[86vh] rounded-2xl overflow-hidden flex"
+        className="w-full sm:max-w-6xl h-[92vh] sm:h-[86vh] rounded-t-2xl sm:rounded-2xl overflow-hidden flex flex-col sm:flex-row"
         style={{
           background: "rgba(12,15,24,0.98)",
           border: "1px solid rgba(255,255,255,0.1)",
           boxShadow: "0 28px 90px rgba(0,0,0,0.65)",
         }}
       >
-        <aside className="w-64 shrink-0 flex flex-col" style={{ borderRight: "1px solid rgba(255,255,255,0.07)", background: "rgba(255,255,255,0.025)" }}>
+        <aside
+          className={`sm:w-64 sm:shrink-0 flex flex-col ${mobileView === "list" ? "flex w-full sm:w-64" : "hidden sm:flex"}`}
+          style={{ borderRight: "1px solid rgba(255,255,255,0.07)", background: "rgba(255,255,255,0.025)" }}
+        >
           <div className="h-14 flex items-center justify-between px-4" style={{ borderBottom: "1px solid rgba(255,255,255,0.07)" }}>
             <div>
               <div className="text-sm font-semibold text-white">Devices</div>
@@ -524,7 +528,7 @@ export function DeviceRegistryPanel({
               return (
                 <button
                   key={device.id}
-                  onClick={() => setSelectedDeviceId(device.id)}
+                  onClick={() => { setSelectedDeviceId(device.id); setMobileView("form"); }}
                   className="w-full h-10 rounded-lg px-3 flex items-center justify-between text-left mb-1 transition-colors"
                   style={{
                     background: isSelected ? `rgba(${ACCENT_RGB},0.14)` : "transparent",
@@ -543,9 +547,16 @@ export function DeviceRegistryPanel({
           </div>
         </aside>
 
-        <main className="flex-1 flex flex-col min-w-0">
-          <div className="h-14 shrink-0 flex items-center justify-between px-5" style={{ borderBottom: "1px solid rgba(255,255,255,0.07)" }}>
+        <main className={`flex-1 flex flex-col min-w-0 ${mobileView === "form" ? "flex" : "hidden sm:flex"}`}>
+          <div className="h-14 shrink-0 flex items-center justify-between px-4 sm:px-5" style={{ borderBottom: "1px solid rgba(255,255,255,0.07)" }}>
             <div className="flex items-center gap-3 min-w-0">
+              <button
+                onClick={() => setMobileView("list")}
+                className="sm:hidden w-7 h-7 rounded-lg flex items-center justify-center mr-1 hover:bg-white/10"
+                style={{ color: "rgba(255,255,255,0.58)" }}
+              >
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M9 2L4 7L9 12" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>
+              </button>
               <span className="font-mono text-sm font-bold" style={{ color: ACCENT }}>
                 {record.deviceNumber || selectedNumber}
               </span>

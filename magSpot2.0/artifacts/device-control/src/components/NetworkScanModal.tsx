@@ -79,16 +79,17 @@ export function NetworkScanModal({ onClose }: NetworkScanModalProps) {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center"
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4"
       style={{ background: "rgba(0,0,0,0.6)", backdropFilter: "blur(4px)" }}
       onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
       <div
-        className="w-[680px] rounded-2xl flex flex-col overflow-hidden"
+        className="w-full sm:max-w-[680px] rounded-t-2xl sm:rounded-2xl flex flex-col overflow-hidden"
         style={{
           background: "rgba(10,14,24,0.97)",
           border: "1px solid rgba(255,255,255,0.1)",
           boxShadow: "0 24px 64px rgba(0,0,0,0.6)",
+          maxHeight: "90vh",
         }}
         onMouseDown={(e) => e.stopPropagation()}
       >
@@ -117,8 +118,8 @@ export function NetworkScanModal({ onClose }: NetworkScanModalProps) {
             <div className="text-[11px] font-semibold uppercase tracking-widest mb-2.5" style={{ color: "rgba(255,255,255,0.35)" }}>
               {t.addNetworkSegment}
             </div>
-            <div className="flex items-center gap-2">
-              <div className="flex-1 flex items-center gap-1">
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="flex-1 flex items-center gap-1 min-w-0">
                 <input
                   value={newRange}
                   onChange={(e) => setNewRange(e.target.value)}
