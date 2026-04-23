@@ -945,8 +945,19 @@ function DeviceCard({
   const planIndicator = getPlanIndicatorStyle(getDevicePlanIndicator(device.id, savedSchedule, now));
   const [controlError, setControlError] = useState<string | null>(null);
   const dashboardPointerRef = useRef<{ x: number; y: number; at: number } | null>(null);
-  const shouldStream = streamEnabled && !isFocusedOrigin;
+  const [localStreamEnabled, setLocalStreamEnabled] = useState(false);
+  const shouldStream = (streamEnabled || localStreamEnabled) && !isFocusedOrigin;
   const dashboardStream = useScrcpyDirectVideo(device, shouldStream, SCRCPY_FPS, SCRCPY_MAX_SIZE, SCRCPY_BITRATE, SCRCPY_IFRAME_SECS, SCRCPY_ENCODER);
+
+  const connectRealtimeDisplay = useCallback(() => {
+    if (shouldStream) {
+      // Already streaming — restart by briefly disabling
+      setLocalStreamEnabled(false);
+      setTimeout(() => setLocalStreamEnabled(true), 80);
+    } else {
+      setLocalStreamEnabled(true);
+    }
+  }, [shouldStream]);
   const registryRecord = safeLoadRecords()[String(device.id)];
   const deviceModel = registryRecord?.deviceModel?.trim() ?? "";
   const countryBadge = registryRecord?.vpnCountryCode
@@ -1202,11 +1213,28 @@ function DeviceCard({
           borderRadius: "10px",
         }}
       >
-        <div className="px-2 py-1.5 text-[11px] font-medium" style={{ color: "rgba(255,255,255,0.4)" }}>
-          {contextCount > 0
-            ? t.devicesSelected(contextCount)
-            : `${t.device} #${displayNum.toString().padStart(3, "0")}`}
+        <div className="px-2 py-1.5" style={{ color: "rgba(255,255,255,0.4)" }}>
+          {contextCount > 0 ? (
+            <span className="text-[11px] font-medium">{t.devicesSelected(contextCount)}</span>
+          ) : (
+            <>
+              <div className="text-[11px] font-semibold tracking-wide" style={{ color: "rgba(255,255,255,0.75)" }}>
+                DEVICE: {deviceName || deviceModel || device.ip}
+              </div>
+              <div className="text-[10px] font-mono mt-0.5" style={{ color: "rgba(255,255,255,0.35)" }}>
+                IP: {device.ip}
+              </div>
+            </>
+          )}
         </div>
+        <ContextMenuSeparator />
+        <ContextMenuItem
+          className="text-sm text-white/80 focus:bg-white/10 focus:text-white cursor-pointer flex items-center gap-2"
+          onClick={connectRealtimeDisplay}
+        >
+          <Wifi className="w-3.5 h-3.5 shrink-0" style={{ color: shouldStream ? "#a855f7" : "#00d4e8" }} />
+          {shouldStream ? "Reconnect Realtime Display" : "Connect Realtime Display"}
+        </ContextMenuItem>
         <ContextMenuSeparator />
         <ContextMenuSub>
           <ContextMenuSubTrigger className="text-sm text-white/80 focus:bg-white/10 focus:text-white">
