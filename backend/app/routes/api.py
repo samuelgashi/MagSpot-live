@@ -758,7 +758,7 @@ def execute_command():
 # GET /api/devices/device-name - Return cached ADB device_name for a device
 _device_name_cache = {}
 
-@api_bp.route('/devices/device-name', methods=['GET'])
+@api_keys_bp.route('/devices/device-name', methods=['GET'])
 def get_device_name_api():
     device_id = request.args.get('device_id', '').strip()
     if not device_id:
