@@ -889,6 +889,7 @@ function DeviceCard({
   onOpenFocusedDevice,
   smallScreenEnabled,
   syncControlEnabled,
+  streamEnabled,
   controlDevices,
   now,
   savedSchedule,
