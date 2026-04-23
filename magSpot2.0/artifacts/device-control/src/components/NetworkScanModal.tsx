@@ -118,38 +118,38 @@ export function NetworkScanModal({ onClose }: NetworkScanModalProps) {
             <div className="text-[11px] font-semibold uppercase tracking-widest mb-2.5" style={{ color: "rgba(255,255,255,0.35)" }}>
               {t.addNetworkSegment}
             </div>
-            <div className="flex flex-wrap items-center gap-2">
-              <div className="flex-1 flex items-center gap-1 min-w-0">
-                <input
-                  value={newRange}
-                  onChange={(e) => setNewRange(e.target.value)}
-                  placeholder="192.168.1"
-                  className="flex-1 h-8 px-3 text-sm rounded-lg outline-none text-white placeholder-white/25"
-                  style={{
-                    background: "rgba(255,255,255,0.06)",
-                    border: "1px solid rgba(255,255,255,0.1)",
-                    fontFamily: "var(--app-font-mono)",
-                    fontSize: "12px",
-                  }}
-                />
+            <div className="flex items-center gap-2 min-w-0">
+              <input
+                value={newRange}
+                onChange={(e) => setNewRange(e.target.value)}
+                placeholder="192.168.1"
+                className="flex-1 min-w-0 h-8 px-2.5 rounded-lg outline-none text-white placeholder-white/25"
+                style={{
+                  background: "rgba(255,255,255,0.06)",
+                  border: "1px solid rgba(255,255,255,0.1)",
+                  fontFamily: "var(--app-font-mono)",
+                  fontSize: "12px",
+                }}
+              />
+              <span className="hidden sm:flex items-center gap-1 shrink-0">
                 <span className="text-xs" style={{ color: "rgba(255,255,255,0.3)" }}>–</span>
                 <span
-                  className="h-8 px-3 flex items-center rounded-lg text-xs font-mono"
+                  className="h-8 px-2.5 flex items-center rounded-lg text-xs font-mono"
                   style={{
                     background: "rgba(255,255,255,0.04)",
                     border: "1px solid rgba(255,255,255,0.06)",
                     color: "rgba(255,255,255,0.3)",
-                    minWidth: "90px",
+                    minWidth: "80px",
                   }}
                 >
                   {newRange}.1–.254
                 </span>
-              </div>
+              </span>
               <input
                 value={newPort}
                 onChange={(e) => setNewPort(e.target.value)}
                 placeholder="5555"
-                className="h-8 px-3 text-sm rounded-lg outline-none text-white placeholder-white/25 w-20"
+                className="h-8 px-2 rounded-lg outline-none text-white placeholder-white/25 w-14 shrink-0"
                 style={{
                   background: "rgba(255,255,255,0.06)",
                   border: "1px solid rgba(255,255,255,0.1)",
@@ -158,8 +158,9 @@ export function NetworkScanModal({ onClose }: NetworkScanModalProps) {
                 }}
               />
               <button
+                title="Add segment"
                 onClick={addSegment}
-                className="h-8 px-3 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all"
+                className="h-8 px-2.5 rounded-lg text-xs font-semibold flex items-center gap-1 transition-all shrink-0"
                 style={{
                   background: `rgba(${ACCENT_RGB},0.12)`,
                   border: `1px solid rgba(${ACCENT_RGB},0.25)`,
@@ -167,7 +168,7 @@ export function NetworkScanModal({ onClose }: NetworkScanModalProps) {
                 }}
               >
                 <Plus className="w-3.5 h-3.5" />
-                Add
+                <span className="hidden sm:inline">Add</span>
               </button>
             </div>
             <p className="text-[10px] mt-1.5" style={{ color: "rgba(255,255,255,0.25)" }}>
@@ -230,9 +231,10 @@ export function NetworkScanModal({ onClose }: NetworkScanModalProps) {
         >
           {/* Restart ADB */}
           <button
+            title="Restart ADB"
             onClick={handleRestartAdb}
             disabled={isRestarting}
-            className="h-8 px-4 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all"
+            className="h-8 px-3 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all"
             style={{
               background: isRestarting ? "rgba(185,28,28,0.4)" : "rgba(185,28,28,0.75)",
               border: "1px solid rgba(239,68,68,0.35)",
@@ -241,7 +243,7 @@ export function NetworkScanModal({ onClose }: NetworkScanModalProps) {
             }}
           >
             <RotateCcw className={`w-3.5 h-3.5 ${isRestarting ? "animate-spin" : ""}`} />
-            {isRestarting ? "Restarting…" : "Restart ADB"}
+            <span className="hidden sm:inline">{isRestarting ? "Restarting…" : "Restart ADB"}</span>
           </button>
 
           <div className="flex items-center gap-2.5">
@@ -253,9 +255,10 @@ export function NetworkScanModal({ onClose }: NetworkScanModalProps) {
             Cancel
           </button>
           <button
+            title={t.scan}
             onClick={handleScan}
             disabled={isScanning || segments.length === 0}
-            className="h-8 px-5 rounded-lg text-xs font-semibold transition-all flex items-center gap-2"
+            className="h-8 px-3 rounded-lg text-xs font-semibold transition-all flex items-center gap-2"
             style={{
               background: isScanning || segments.length === 0 ? "rgba(255,255,255,0.08)" : `rgba(${ACCENT_RGB},0.15)`,
               border: `1px solid ${isScanning || segments.length === 0 ? "rgba(255,255,255,0.1)" : `rgba(${ACCENT_RGB},0.35)`}`,
@@ -266,12 +269,12 @@ export function NetworkScanModal({ onClose }: NetworkScanModalProps) {
             {isScanning ? (
               <>
                 <span className="w-3 h-3 rounded-full border-2 border-current border-t-transparent animate-spin" />
-                {t.scanning}
+                <span className="hidden sm:inline">{t.scanning}</span>
               </>
             ) : (
               <>
                 <Wifi className="w-3.5 h-3.5" />
-                {t.scan}
+                <span className="hidden sm:inline">{t.scan}</span>
               </>
             )}
           </button>

@@ -131,7 +131,7 @@ export function TaskManagerPanel({ onClose }: { onClose: () => void }) {
                     <option key={status} value={status} style={{ background: "#0b0f1a", color: "white" }}>{status}</option>
                   ))}
                 </select>
-                <input value={searchQuery} onChange={(event) => setSearchQuery(event.target.value)} placeholder="Search by ID, device, type..." className="h-8 w-56 rounded-lg px-3 text-xs outline-none text-white placeholder-white/25" style={inputStyle} />
+                <input value={searchQuery} onChange={(event) => setSearchQuery(event.target.value)} placeholder="Search..." className="h-8 w-full sm:w-56 rounded-lg px-3 text-xs outline-none text-white placeholder-white/25" style={inputStyle} />
               </div>
             </div>
             <div className="space-y-2 max-h-64 overflow-auto pr-1">
@@ -214,9 +214,9 @@ export function TaskManagerPanel({ onClose }: { onClose: () => void }) {
 
 function PanelButton({ onClick, icon: Icon, label, disabled, danger, dangerOutline, compact }: { onClick: () => void; icon: React.ElementType; label: string; disabled?: boolean; danger?: boolean; dangerOutline?: boolean; compact?: boolean }) {
   return (
-    <button onClick={onClick} disabled={disabled} className={`h-8 ${compact ? "px-3" : "px-3.5"} rounded-lg text-xs font-semibold flex items-center gap-2 transition-all disabled:opacity-40 hover:opacity-90`} style={{ background: danger ? "rgba(239,68,68,0.18)" : dangerOutline ? "rgba(239,68,68,0.08)" : `rgba(${ACCENT_RGB},0.12)`, border: danger || dangerOutline ? "1px solid rgba(239,68,68,0.36)" : `1px solid rgba(${ACCENT_RGB},0.3)`, color: danger || dangerOutline ? "#f87171" : ACCENT }}>
+    <button title={label} onClick={onClick} disabled={disabled} className={`h-8 ${compact ? "px-3" : "px-3.5"} rounded-lg text-xs font-semibold flex items-center gap-2 transition-all disabled:opacity-40 hover:opacity-90`} style={{ background: danger ? "rgba(239,68,68,0.18)" : dangerOutline ? "rgba(239,68,68,0.08)" : `rgba(${ACCENT_RGB},0.12)`, border: danger || dangerOutline ? "1px solid rgba(239,68,68,0.36)" : `1px solid rgba(${ACCENT_RGB},0.3)`, color: danger || dangerOutline ? "#f87171" : ACCENT }}>
       <Icon className={`w-3.5 h-3.5 ${disabled ? "animate-spin" : ""}`} />
-      {label}
+      <span className="hidden sm:inline">{label}</span>
     </button>
   );
 }

@@ -572,7 +572,7 @@ export function DeviceRegistryPanel({
                 style={{ color: "rgba(255,255,255,0.48)", border: "1px solid rgba(255,255,255,0.08)" }}
               >
                 <Trash2 className="w-3.5 h-3.5" />
-                {t.clear}
+                <span className="hidden sm:inline">{t.clear}</span>
               </button>
               <button
                 onClick={saveRecords}
@@ -580,14 +580,14 @@ export function DeviceRegistryPanel({
                 style={{ color: ACCENT, background: `rgba(${ACCENT_RGB},0.12)`, border: `1px solid rgba(${ACCENT_RGB},0.3)` }}
               >
                 <Save className="w-3.5 h-3.5" />
-                {t.save}
+                <span className="hidden sm:inline">{t.save}</span>
               </button>
             </div>
           </div>
 
-          <div className="flex-1 overflow-auto p-5 space-y-4">
+          <div className="flex-1 overflow-auto p-3 sm:p-5 space-y-4">
             <Section title={t.deviceSection}>
-              <div className="grid min-w-0 grid-cols-[180px_minmax(220px,250px)_minmax(0,1fr)] gap-4">
+              <div className="grid min-w-0 grid-cols-1 sm:grid-cols-[180px_minmax(180px,220px)_minmax(0,1fr)] gap-3">
                 <Field label={t.deviceNumber} value={record.deviceNumber} onChange={(value) => updateRecord({ deviceNumber: value })} />
                 <ModelField
                   label={t.deviceModel}
@@ -621,7 +621,7 @@ export function DeviceRegistryPanel({
             </Section>
 
             <Section title={t.paymentSection}>
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                 <Field label={t.cardHolder} value={record.cardHolder} onChange={(value) => updateRecord({ cardHolder: value })} />
                 <Field label={t.cardType} value={record.cardType} onChange={(value) => updateRecord({ cardType: value })} />
                 <Field label={t.cardNumber} value={record.cardNumber} onChange={(value) => updateRecord({ cardNumber: value })} />

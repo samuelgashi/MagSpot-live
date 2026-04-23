@@ -234,9 +234,9 @@ function Field({ label, children, className }: { label: string; children: React.
 
 function ActionButton({ icon: Icon, label, onClick, disabled, danger, grow }: { icon: React.ElementType; label: string; onClick: () => void; disabled?: boolean; danger?: boolean; grow?: boolean }) {
   return (
-    <button onClick={onClick} disabled={disabled} className={`h-10 px-3 rounded-lg text-xs font-semibold flex items-center justify-center gap-2 transition-all hover:opacity-90 disabled:opacity-40 ${grow ? "flex-1" : ""}`} style={{ background: danger ? "rgba(239,68,68,0.16)" : `rgba(${ACCENT_RGB},0.12)`, border: danger ? "1px solid rgba(239,68,68,0.35)" : `1px solid rgba(${ACCENT_RGB},0.3)`, color: danger ? "#f87171" : ACCENT }}>
+    <button title={label} onClick={onClick} disabled={disabled} className={`h-10 px-3 rounded-lg text-xs font-semibold flex items-center justify-center gap-2 transition-all hover:opacity-90 disabled:opacity-40 ${grow ? "flex-1" : ""}`} style={{ background: danger ? "rgba(239,68,68,0.16)" : `rgba(${ACCENT_RGB},0.12)`, border: danger ? "1px solid rgba(239,68,68,0.35)" : `1px solid rgba(${ACCENT_RGB},0.3)`, color: danger ? "#f87171" : ACCENT }}>
       <Icon className={`w-4 h-4 ${disabled ? "animate-spin" : ""}`} />
-      {label}
+      <span className="hidden sm:inline">{label}</span>
     </button>
   );
 }
