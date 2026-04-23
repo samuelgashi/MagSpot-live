@@ -1072,13 +1072,7 @@ function DeviceCard({
               userSelect: "none",
             }}
           >
-            {/* Status dot */}
-            <div
-              className="w-1.5 h-1.5 rounded-full shrink-0 mr-0.5"
-              style={{ backgroundColor: deviceStatusColor(device), boxShadow: `0 0 4px ${deviceStatusColor(device)}` }}
-            />
-
-            {/* IP last octet (replaces count number) */}
+            {/* IP last octet */}
             <span
               className="font-mono font-bold leading-none shrink-0"
               style={{
@@ -1093,27 +1087,14 @@ function DeviceCard({
 
             {!compact && (
               <span
-                className="font-mono leading-none truncate flex-1 text-center mx-1"
-                style={{ fontSize: "8px", color: "rgba(255,255,255,0.38)" }}
+                className="font-sans leading-none truncate flex-1 text-center mx-1"
+                style={{ fontSize: "10px", fontWeight: 600, color: "rgba(148,163,184,0.75)" }}
               >
-                {deviceName || deviceModel || device.ip}
+                {deviceName || deviceModel || ""}
               </span>
             )}
 
             <div className="flex items-center gap-1.5 shrink-0">
-              {(deviceName || deviceModel) && (
-                <span
-                  className="font-mono leading-none px-1.5 py-0.5 rounded max-w-[76px] truncate"
-                  style={{
-                    fontSize: compact ? "9px" : "10px",
-                    color: "rgba(255,255,255,0.4)",
-                    background: "rgba(255,255,255,0.04)",
-                    border: "1px solid rgba(255,255,255,0.07)",
-                  }}
-                >
-                  {device.ip}
-                </span>
-              )}
               {countryBadge && (
                 <span
                   className="font-mono leading-none px-1.5 py-0.5 rounded"
@@ -1127,10 +1108,17 @@ function DeviceCard({
                   {countryBadge}
                 </span>
               )}
-              <div
-                className="w-1.5 h-1.5 rounded-full shrink-0"
-                style={{ backgroundColor: planIndicator.bg, boxShadow: `0 0 5px ${planIndicator.glow}` }}
-              />
+              {(() => {
+                const isIdle = planIndicator.bg === "rgba(148,163,184,0.58)";
+                const dotColor = isIdle ? deviceStatusColor(device) : planIndicator.bg;
+                const dotGlow = isIdle ? `${deviceStatusColor(device)}55` : planIndicator.glow;
+                return (
+                  <div
+                    className="w-1.5 h-1.5 rounded-full shrink-0"
+                    style={{ backgroundColor: dotColor, boxShadow: `0 0 5px ${dotGlow}` }}
+                  />
+                );
+              })()}
             </div>
           </div>
 
