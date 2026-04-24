@@ -29,7 +29,9 @@ ENV NODE_GYP_FORCE_PYTHON=python3
 RUN apt-get update && apt-get install -y \
     wget unzip curl git \
     build-essential g++ make \
-    libssl1.1 libffi7 zlib1g libbz2-1.0 libsqlite3-0 liblzma5 libreadline8 \
+    libssl1.1 libssl-dev libffi7 libffi-dev \
+    zlib1g zlib1g-dev libbz2-1.0 libbz2-dev \
+    libsqlite3-0 libsqlite3-dev liblzma5 liblzma-dev libreadline8 libreadline-dev \
     libnss3 libdbus-1-3 libatk1.0-0 libgbm-dev \
     libasound2 libxrandr2 libxkbcommon-dev libxfixes3 \
     libxcomposite1 libxdamage1 libatk-bridge2.0-0 libcups2 \

@@ -1,0 +1,55 @@
+ensar-abazi@Enab:~/Desktop/MagSpot-live$ docker compose --env-file .env -f docker-compose.yml up --build -d
+WARN[0000] The "UID" variable is not set. Defaulting to a blank string. 
+WARN[0000] The "GID" variable is not set. Defaulting to a blank string. 
+WARN[0000] The "DEVICES_RANGE" variable is not set. Defaulting to a blank string. 
+WARN[0000] The "CLOUDFLARED_TUNNEL_TOKEN" variable is not set. Defaulting to a blank string. 
+WARN[0000] /home/ensar-abazi/Desktop/MagSpot-live/docker-compose.yml: the attribute `version` is obsolete, it will be ignored, please remove it to avoid potential confusion 
+[+] Building 37.8s (42/61)                                                                                                                                                                    
+ => [internal] load local bake definitions                                                                                                                                               0.0s
+ => => reading from stdin 2.52kB                                                                                                                                                         0.0s
+ => [internal] load build definition from Dockerfile                                                                                                                                     0.0s
+ => => transferring dockerfile: 10.46kB                                                                                                                                                  0.0s
+ => [internal] load metadata for docker.io/library/node:20.20.1-bullseye                                                                                                                 0.7s
+ => [internal] load metadata for docker.io/library/python:3.11.9-slim-bullseye                                                                                                           0.7s
+ => [internal] load .dockerignore                                                                                                                                                        0.0s
+ => => transferring context: 2B                                                                                                                                                          0.0s
+ => [internal] load build context                                                                                                                                                        0.1s
+ => => transferring context: 53.66kB                                                                                                                                                     0.0s
+ => CACHED [python311 1/1] FROM docker.io/library/python:3.11.9-slim-bullseye@sha256:fe8df05de0fe659668a0b6fa204c652092e3e96832a9c7d6f8cc1e0e03e663d8                                    0.1s
+ => => resolve docker.io/library/python:3.11.9-slim-bullseye@sha256:fe8df05de0fe659668a0b6fa204c652092e3e96832a9c7d6f8cc1e0e03e663d8                                                     0.1s
+ => CACHED [frontend 1/9] FROM docker.io/library/node:20.20.1-bullseye@sha256:42a74540b62599111c6c2c1c931e8fc97d7e9aca4071cae157b3418c2739d8c0                                           0.1s
+ => => resolve docker.io/library/node:20.20.1-bullseye@sha256:42a74540b62599111c6c2c1c931e8fc97d7e9aca4071cae157b3418c2739d8c0                                                           0.1s
+ => [backend  2/24] RUN apt-get update && apt-get install -y     wget unzip curl git     build-essential g++ make     libssl1.1 libffi7 zlib1g libbz2-1.0 libsqlite3-0 liblzma5 librea  20.8s
+ => [final  2/23] RUN npm install -g npm@10.8.2                                                                                                                                         10.8s
+ => CACHED [frontend 2/9] RUN npm install -g pnpm                                                                                                                                        0.0s
+ => CACHED [frontend 3/9] WORKDIR /app                                                                                                                                                   0.0s
+ => CACHED [frontend 4/9] COPY frontend/pnpm-workspace.yaml frontend/pnpm-lock.yaml frontend/package.json ./                                                                             0.0s
+ => [frontend 5/9] COPY frontend/tsconfig.base.json frontend/tsconfig.json ./                                                                                                            0.1s
+ => [frontend 6/9] COPY frontend/lib ./lib                                                                                                                                               0.1s
+ => [frontend 7/9] COPY frontend/artifacts ./artifacts                                                                                                                                   0.1s
+ => [frontend 8/9] RUN pnpm install --frozen-lockfile                                                                                                                                    5.8s
+ => [frontend 9/9] RUN pnpm --filter @workspace/device-control run build                                                                                                                 3.1s
+ => [final  3/23] RUN apt-get update && apt-get install -y     libssl1.1 libffi7 zlib1g libbz2-1.0 libsqlite3-0 liblzma5 libreadline8     adb curl     && rm -rf /var/lib/apt/lists/*    3.0s
+ => [final  4/23] COPY --from=python311 /usr/local/bin/python3.11 /usr/local/bin/python3.11                                                                                              0.1s
+ => [final  5/23] COPY --from=python311 /usr/local/bin/pip3.11 /usr/local/bin/pip3.11                                                                                                    0.1s
+ => [final  6/23] COPY --from=python311 /usr/local/bin/pip3 /usr/local/bin/pip3                                                                                                          0.1s
+ => [final  7/23] COPY --from=python311 /usr/local/bin/pip /usr/local/bin/pip                                                                                                            0.1s
+ => [final  8/23] COPY --from=python311 /usr/local/lib/python3.11 /usr/local/lib/python3.11                                                                                              0.2s 
+ => [final  9/23] COPY --from=python311 /usr/local/lib/libpython3.11.so.1.0 /usr/local/lib/libpython3.11.so.1.0                                                                          0.1s 
+ => [final 10/23] RUN ln -sf /usr/local/bin/python3.11 /usr/local/bin/python3     && ln -sf /usr/local/bin/python3.11 /usr/bin/python3     && ln -sf /usr/local/lib/libpython3.11.so.1.  0.3s 
+ => [final 11/23] WORKDIR /app                                                                                                                                                           0.1s 
+ => [backend  3/24] RUN npm install -g npm@10.8.2                                                                                                                                        9.7s 
+ => [backend  4/24] RUN wget -q https://dl.google.com/android/repository/platform-tools-latest-linux.zip         -O /tmp/platform-tools.zip     && unzip /tmp/platform-tools.zip -d /op  0.9s 
+ => [backend  5/24] RUN mkdir -p /usr/share/keyrings     && curl -fsSL https://pkg.cloudflare.com/cloudflare-public-v2.gpg        | tee /usr/share/keyrings/cloudflare-public-v2.gpg >/  3.8s 
+ => [backend  6/24] COPY --from=python311 /usr/local/bin/python3.11 /usr/local/bin/python3.11                                                                                            0.1s 
+ => [backend  7/24] COPY --from=python311 /usr/local/bin/python3.11-config /usr/local/bin/python3.11-config                                                                              0.1s 
+ => [backend  8/24] COPY --from=python311 /usr/local/bin/pip3.11 /usr/local/bin/pip3.11                                                                                                  0.1s 
+ => [backend  9/24] COPY --from=python311 /usr/local/bin/pip3 /usr/local/bin/pip3                                                                                                        0.1s 
+ => [backend 10/24] COPY --from=python311 /usr/local/bin/pip /usr/local/bin/pip                                                                                                          0.1s 
+ => [backend 11/24] COPY --from=python311 /usr/local/lib/python3.11 /usr/local/lib/python3.11                                                                                            0.2s 
+ => [backend 12/24] COPY --from=python311 /usr/local/lib/libpython3.11.so.1.0 /usr/local/lib/libpython3.11.so.1.0                                                                        0.1s
+ => [backend 13/24] COPY --from=python311 /usr/local/include/python3.11 /usr/local/include/python3.11                                                                                    0.1s
+ => [backend 14/24] RUN ln -sf /usr/local/bin/python3.11 /usr/local/bin/python3     && ln -sf /usr/local/bin/python3.11 /usr/bin/python3     && ln -sf /usr/local/lib/libpython3.11.so.  0.3s
+ => [backend 15/24] WORKDIR /app                                                                                                                                                         0.1s
+ => [backend 16/24] COPY backend/requirements.txt ./                                                                                                                                     0.1s
+ => ERROR [backend 17/24] RUN pip install --no-cache-dir -r requirements.txt  
