@@ -121,7 +121,7 @@ EXPOSE ${BACKEND_PORT}
 # ============================================================
 #                    FRONTEND (Vite / pnpm monorepo)
 # ============================================================
-FROM node:20.20.1-alpine AS frontend
+FROM node:20.20.1-bullseye AS frontend
 
 ARG VITE_BACKEND_API_URL
 ARG BACKEND_HOST

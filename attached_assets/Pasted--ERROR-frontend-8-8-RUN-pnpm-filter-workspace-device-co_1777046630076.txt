@@ -1,0 +1,66 @@
+ => ERROR [frontend 8/8] RUN pnpm --filter @workspace/device-control run build                                                                                                           0.9s
+ => CANCELED [final  2/23] RUN npm install -g npm@10.8.2                                                                                                                                 0.0s
+ => CANCELED [backend  2/24] RUN apt-get update && apt-get install -y     wget unzip curl git     build-essential g++ make     libssl1.1 libffi7 zlib1g libbz2-1.0 libsqlite3-0 liblzma  0.0s
+------
+ > [frontend 8/8] RUN pnpm --filter @workspace/device-control run build:
+0.730 
+0.730 > @workspace/device-control@0.0.0 build /app/artifacts/device-control
+0.730 > vite build --config vite.config.ts
+0.730 
+0.818 /app/node_modules/.pnpm/rollup@4.59.0/node_modules/rollup/dist/native.js:115
+0.818 		throw new Error(
+0.818 		      ^
+0.818 
+0.818 Error: Cannot find module @rollup/rollup-linux-x64-musl. npm has a bug related to optional dependencies (https://github.com/npm/cli/issues/4828). Please try `npm i` again after removing both package-lock.json and node_modules directory.
+0.818     at requireWithFriendlyError (/app/node_modules/.pnpm/rollup@4.59.0/node_modules/rollup/dist/native.js:115:9)
+0.818     at Object.<anonymous> (/app/node_modules/.pnpm/rollup@4.59.0/node_modules/rollup/dist/native.js:124:76)
+0.818     ... 3 lines matching cause stack trace ...
+0.818     at Module._load (node:internal/modules/cjs/loader:1091:12)
+0.818     at cjsLoader (node:internal/modules/esm/translators:298:15)
+0.818     at ModuleWrap.<anonymous> (node:internal/modules/esm/translators:240:7)
+0.818     at ModuleJob.run (node:internal/modules/esm/module_job:325:25)
+0.818     at async ModuleLoader.import (node:internal/modules/esm/loader:606:24) {
+0.818   [cause]: Error: Cannot find module '@rollup/rollup-linux-x64-musl'
+0.818   Require stack:
+0.818   - /app/node_modules/.pnpm/rollup@4.59.0/node_modules/rollup/dist/native.js
+0.818       at Module._resolveFilename (node:internal/modules/cjs/loader:1207:15)
+0.818       at Module._load (node:internal/modules/cjs/loader:1038:27)
+0.818       at Module.require (node:internal/modules/cjs/loader:1289:19)
+0.818       at require (node:internal/modules/helpers:182:18)
+0.818       at requireWithFriendlyError (/app/node_modules/.pnpm/rollup@4.59.0/node_modules/rollup/dist/native.js:97:10)
+0.818       at Object.<anonymous> (/app/node_modules/.pnpm/rollup@4.59.0/node_modules/rollup/dist/native.js:124:76)
+0.818       at Module._compile (node:internal/modules/cjs/loader:1521:14)
+0.818       at Module._extensions..js (node:internal/modules/cjs/loader:1623:10)
+0.818       at Module.load (node:internal/modules/cjs/loader:1266:32)
+0.818       at Module._load (node:internal/modules/cjs/loader:1091:12) {
+0.818     code: 'MODULE_NOT_FOUND',
+0.818     requireStack: [
+0.818       '/app/node_modules/.pnpm/rollup@4.59.0/node_modules/rollup/dist/native.js'
+0.818     ]
+0.818   }
+0.818 }
+0.818 
+0.818 Node.js v20.20.1
+0.841 /app/artifacts/device-control:
+0.841  ERR_PNPM_RECURSIVE_RUN_FIRST_FAIL  @workspace/device-control@0.0.0 build: `vite build --config vite.config.ts`
+0.841 Exit status 1
+------
+[+] up 0/1
+ ⠙ Image mag_spot Building                                                                                                                                                               15.4s
+Dockerfile:148
+
+--------------------
+
+ 146 |     RUN pnpm install --frozen-lockfile
+
+ 147 |     
+
+ 148 | >>> RUN pnpm --filter @workspace/device-control run build
+
+ 149 |     
+
+ 150 |     
+
+--------------------
+
+failed to solve: process "/bin/sh -c pnpm --filter @workspace/device-control run build" did not complete successfully: exit code: 1
