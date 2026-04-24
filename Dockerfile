@@ -69,9 +69,6 @@ RUN mkdir -p /usr/share/keyrings \
 # ----------------------------
 COPY --from=python311 /usr/local/bin/python3.11 /usr/local/bin/python3.11
 COPY --from=python311 /usr/local/bin/python3.11-config /usr/local/bin/python3.11-config
-COPY --from=python311 /usr/local/bin/pip3.11 /usr/local/bin/pip3.11
-COPY --from=python311 /usr/local/bin/pip3 /usr/local/bin/pip3
-COPY --from=python311 /usr/local/bin/pip /usr/local/bin/pip
 COPY --from=python311 /usr/local/lib/python3.11 /usr/local/lib/python3.11
 COPY --from=python311 /usr/local/lib/libpython3.11.so.1.0 /usr/local/lib/libpython3.11.so.1.0
 COPY --from=python311 /usr/local/include/python3.11 /usr/local/include/python3.11
@@ -89,7 +86,7 @@ WORKDIR /app
 # Python dependencies (cached)
 # ----------------------------
 COPY backend/requirements.txt ./
-RUN pip install --no-cache-dir -r requirements.txt
+RUN python3.11 -m pip install --no-cache-dir -r requirements.txt
 
 # ----------------------------
 # Backend source code
@@ -171,9 +168,6 @@ RUN apt-get update && apt-get install -y \
 # Python 3.11.9
 # ----------------------------
 COPY --from=python311 /usr/local/bin/python3.11 /usr/local/bin/python3.11
-COPY --from=python311 /usr/local/bin/pip3.11 /usr/local/bin/pip3.11
-COPY --from=python311 /usr/local/bin/pip3 /usr/local/bin/pip3
-COPY --from=python311 /usr/local/bin/pip /usr/local/bin/pip
 COPY --from=python311 /usr/local/lib/python3.11 /usr/local/lib/python3.11
 COPY --from=python311 /usr/local/lib/libpython3.11.so.1.0 /usr/local/lib/libpython3.11.so.1.0
 RUN ln -sf /usr/local/bin/python3.11 /usr/local/bin/python3 \
@@ -197,7 +191,7 @@ COPY --from=frontend /app/artifacts/device-control/dist /app/frontend/dist
 # Python runtime deps
 # ----------------------------
 COPY backend/requirements.txt /tmp/requirements.txt
-RUN pip install --no-cache-dir -r /tmp/requirements.txt
+RUN python3.11 -m pip install --no-cache-dir -r /tmp/requirements.txt
 
 # ----------------------------
 # Static file server
