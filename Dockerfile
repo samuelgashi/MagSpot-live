@@ -193,10 +193,6 @@ COPY --from=frontend /app/artifacts/device-control/dist/public /app/frontend/dis
 COPY backend/requirements.txt /tmp/requirements.txt
 RUN python3.11 -m pip install --no-cache-dir -r /tmp/requirements.txt
 
-# ----------------------------
-# Static file server
-# ----------------------------
-RUN npm install -g serve
 
 # ---------------------------------------------
 # Copy cloudflared binary from backend stage 
