@@ -1,4 +1,9 @@
 # ============================================================
+#                 PYTHON 3.11.9 (pre-built, Bullseye)
+# ============================================================
+FROM python:3.11.9-slim-bullseye AS python311
+
+# ============================================================
 #                 BACKEND (MagAuto + ws-scrcpy)
 # ============================================================
 # FROM node:20-bullseye AS backend
@@ -24,7 +29,7 @@ ENV NODE_GYP_FORCE_PYTHON=python3
 RUN apt-get update && apt-get install -y \
     wget unzip curl git \
     build-essential g++ make \
-    python3 python3-dev python3-pip \
+    libssl1.1 libffi7 zlib1g libbz2-1.0 libsqlite3-0 liblzma5 libreadline8 \
     libnss3 libdbus-1-3 libatk1.0-0 libgbm-dev \
     libasound2 libxrandr2 libxkbcommon-dev libxfixes3 \
     libxcomposite1 libxdamage1 libatk-bridge2.0-0 libcups2 \
@@ -56,6 +61,22 @@ RUN mkdir -p /usr/share/keyrings \
     && apt-get update \
     && apt-get install -y cloudflared \
     && rm -rf /var/lib/apt/lists/*
+
+# ----------------------------
+# Python 3.11.9
+# ----------------------------
+COPY --from=python311 /usr/local/bin/python3.11 /usr/local/bin/python3.11
+COPY --from=python311 /usr/local/bin/python3.11-config /usr/local/bin/python3.11-config
+COPY --from=python311 /usr/local/bin/pip3.11 /usr/local/bin/pip3.11
+COPY --from=python311 /usr/local/bin/pip3 /usr/local/bin/pip3
+COPY --from=python311 /usr/local/bin/pip /usr/local/bin/pip
+COPY --from=python311 /usr/local/lib/python3.11 /usr/local/lib/python3.11
+COPY --from=python311 /usr/local/lib/libpython3.11.so.1.0 /usr/local/lib/libpython3.11.so.1.0
+COPY --from=python311 /usr/local/include/python3.11 /usr/local/include/python3.11
+RUN ln -sf /usr/local/bin/python3.11 /usr/local/bin/python3 \
+    && ln -sf /usr/local/bin/python3.11 /usr/bin/python3 \
+    && ln -sf /usr/local/lib/libpython3.11.so.1.0 /usr/local/lib/libpython3.11.so \
+    && ldconfig
 
 # ----------------------------
 # Working directory
@@ -139,9 +160,23 @@ RUN npm install -g npm@10.8.2
 # Runtime deps only
 # ----------------------------
 RUN apt-get update && apt-get install -y \
-    python3 python3-pip \
+    libssl1.1 libffi7 zlib1g libbz2-1.0 libsqlite3-0 liblzma5 libreadline8 \
     adb curl \
     && rm -rf /var/lib/apt/lists/*
+
+# ----------------------------
+# Python 3.11.9
+# ----------------------------
+COPY --from=python311 /usr/local/bin/python3.11 /usr/local/bin/python3.11
+COPY --from=python311 /usr/local/bin/pip3.11 /usr/local/bin/pip3.11
+COPY --from=python311 /usr/local/bin/pip3 /usr/local/bin/pip3
+COPY --from=python311 /usr/local/bin/pip /usr/local/bin/pip
+COPY --from=python311 /usr/local/lib/python3.11 /usr/local/lib/python3.11
+COPY --from=python311 /usr/local/lib/libpython3.11.so.1.0 /usr/local/lib/libpython3.11.so.1.0
+RUN ln -sf /usr/local/bin/python3.11 /usr/local/bin/python3 \
+    && ln -sf /usr/local/bin/python3.11 /usr/bin/python3 \
+    && ln -sf /usr/local/lib/libpython3.11.so.1.0 /usr/local/lib/libpython3.11.so \
+    && ldconfig
 
 WORKDIR /app
 
