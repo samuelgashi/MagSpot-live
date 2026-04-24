@@ -27,7 +27,7 @@ outputType = "webview"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "cloudflared access tcp --hostname magician_device_101.bgnodes.com --url localhost:5555 >/tmp/magician_device_101_cloudflared.log 2>&1 & sleep 3; adb start-server >/dev/null 2>&1; adb connect localhost:5555 || true; (cd frontend/backend && PORT=3001 npm start) & (PORT=5173 BASE_PATH=/ API_PROXY_TARGET=http://127.0.0.1:3001 pnpm --dir magSpot2.0 --filter @workspace/device-control run dev) & node startup_scripts/preview_bridge.js"
+args = "cloudflared access tcp --hostname magician_device_101.bgnodes.com --url localhost:5555 >/tmp/magician_device_101_cloudflared.log 2>&1 & sleep 3; adb start-server >/dev/null 2>&1; adb connect localhost:5555 || true; (cd frontend_old/backend && PORT=3001 npm start) & (PORT=5173 BASE_PATH=/ API_PROXY_TARGET=http://127.0.0.1:3001 pnpm --dir frontend --filter @workspace/device-control run dev) & node startup_scripts/preview_bridge.js"
 waitForPort = 5000
 
 [[ports]]

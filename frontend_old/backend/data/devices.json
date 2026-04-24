@@ -1,0 +1,22 @@
+[
+  {
+    "id": "emulator-5554",
+    "ip": "emulator-5554",
+    "port": 5555,
+    "serial": "R58MC2LXXMH",
+    "model": "SM-G975N",
+    "status": "online",
+    "lastSeen": "2026-04-24T15:09:18.520Z",
+    "octet": 0
+  },
+  {
+    "id": "localhost:5555",
+    "ip": "localhost",
+    "port": 5555,
+    "serial": "R58MC2LXXMH",
+    "model": "SM-G975N",
+    "status": "online",
+    "lastSeen": "2026-04-24T15:09:18.520Z",
+    "octet": 0
+  }
+]

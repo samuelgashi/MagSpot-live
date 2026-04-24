@@ -98,11 +98,9 @@ EXPOSE ${BACKEND_PORT}
 
 
 # ============================================================
-#                    FRONTEND (Vite)
+#                    FRONTEND (Vite / pnpm monorepo)
 # ============================================================
-# FROM node:18-alpine AS frontend
-FROM node:18.20.4-alpine AS frontend
-RUN npm install -g npm@10.8.2
+FROM node:20.20.1-alpine AS frontend
 
 ARG VITE_BACKEND_API_URL
 ARG BACKEND_HOST
@@ -116,13 +114,17 @@ ENV FRONTEND_API_BASE_URL=${FRONTEND_API_BASE_URL}
 ENV VITE_CLERK_PUBLISHABLE_KEY=${VITE_CLERK_PUBLISHABLE_KEY}
 ENV VITE_NETWORK_BASE_IP=${VITE_NETWORK_BASE_IP}
 
+RUN npm install -g pnpm
+
 WORKDIR /app
 
-COPY frontend/package*.json ./
-RUN npm install
+COPY frontend/pnpm-workspace.yaml frontend/pnpm-lock.yaml frontend/package.json ./
+COPY frontend/lib ./lib
+COPY frontend/artifacts ./artifacts
 
-COPY frontend/ .
-RUN npm run build
+RUN pnpm install --frozen-lockfile
+
+RUN pnpm --filter @workspace/device-control run build
 
 
 
@@ -151,7 +153,7 @@ COPY --from=backend /app /app/backend
 # ----------------------------
 # Frontend
 # ----------------------------
-COPY --from=frontend /app/dist /app/frontend/dist
+COPY --from=frontend /app/artifacts/device-control/dist /app/frontend/dist
 
 # ----------------------------
 # Python runtime deps
