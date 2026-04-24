@@ -127,6 +127,67 @@ def create_app():
                 except Exception:
                     pass
 
+    @sock.route('/api/devices/scrcpy-server-proxy')
+    def scrcpy_server_proxy(ws):
+        """
+        Bidirectional WebSocket proxy: browser ↔ backend ↔ scrcpy-server on device.
+        This keeps the device LAN IP server-side and works over any tunnel/HTTPS.
+        """
+        from flask import request as flask_request
+        import websocket as ws_client
+        import threading
+
+        device_id = flask_request.args.get('deviceId', '')
+        if not device_id:
+            return
+
+        device_ip = device_id.split(':')[0]
+        target_url = f'ws://{device_ip}:8886'
+
+        target = ws_client.WebSocket()
+        try:
+            target.connect(target_url, timeout=10)
+        except Exception:
+            return
+
+        stop = threading.Event()
+
+        def device_to_client():
+            """Forward raw frames from the scrcpy-server to the browser."""
+            try:
+                while not stop.is_set():
+                    opcode, data = target.recv_data()
+                    if not data:
+                        break
+                    ws.send(bytes(data))
+            except Exception:
+                pass
+            finally:
+                stop.set()
+
+        thread = threading.Thread(target=device_to_client, daemon=True)
+        thread.start()
+
+        try:
+            while not stop.is_set():
+                try:
+                    data = ws.receive()
+                    if data is None:
+                        break
+                    if isinstance(data, str):
+                        target.send(data)
+                    else:
+                        target.send_binary(data)
+                except Exception:
+                    break
+        finally:
+            stop.set()
+            try:
+                target.close()
+            except Exception:
+                pass
+            thread.join(timeout=2)
+
     @sock.route('/api/devices/ws-image-stream')
     def ws_image_stream(ws):
         from flask import request as flask_request

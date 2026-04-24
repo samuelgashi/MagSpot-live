@@ -154,7 +154,17 @@ export async function postMagSpotStartScrcpyServer(device: { id: number; ip?: st
     const err = await response.json().catch(() => ({ message: "Unknown error" }));
     throw new Error(err.message ?? "Failed to start scrcpy server");
   }
-  return response.json();
+  const data = await response.json();
+  // Backend now returns a relative path (/api/devices/scrcpy-server-proxy?...).
+  // Convert it to an absolute WebSocket URL using the current page origin so
+  // it works correctly whether accessed via localhost or a Cloudflare tunnel
+  // (wss: when served over HTTPS, ws: otherwise).
+  if (data.wsUrl && data.wsUrl.startsWith('/')) {
+    const url = new URL(data.wsUrl, window.location.origin);
+    url.protocol = url.protocol === "https:" ? "wss:" : "ws:";
+    data.wsUrl = url.toString();
+  }
+  return data;
 }
 
 export async function postMagSpotStopScrcpyServer(device: { id: number; ip?: string; [key: string]: unknown }): Promise<void> {

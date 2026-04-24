@@ -997,7 +997,7 @@ def start_scrcpy_server():
             if check.stdout.strip():
                 break
 
-        return jsonify({'wsUrl': f'ws://{device_ip}:8886'}), 200
+        return jsonify({'wsUrl': f'/api/devices/scrcpy-server-proxy?deviceId={device_id}'}), 200
 
     except subprocess.TimeoutExpired:
         return jsonify({'message': 'Timeout starting scrcpy server'}), 504
