@@ -140,6 +140,7 @@ RUN npm install -g pnpm
 WORKDIR /app
 
 COPY frontend/pnpm-workspace.yaml frontend/pnpm-lock.yaml frontend/package.json ./
+COPY frontend/tsconfig.base.json frontend/tsconfig.json ./
 COPY frontend/lib ./lib
 COPY frontend/artifacts ./artifacts
 

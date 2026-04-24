@@ -1,0 +1,89 @@
+ensar-abazi@Enab:~/Desktop/MagSpot-live$ docker compose --env-file .env -f docker-compose.yml up --build -d
+WARN[0000] The "GID" variable is not set. Defaulting to a blank string. 
+WARN[0000] The "UID" variable is not set. Defaulting to a blank string. 
+WARN[0000] The "DEVICES_RANGE" variable is not set. Defaulting to a blank string. 
+WARN[0000] The "CLOUDFLARED_TUNNEL_TOKEN" variable is not set. Defaulting to a blank string. 
+WARN[0000] /home/ensar-abazi/Desktop/MagSpot-live/docker-compose.yml: the attribute `version` is obsolete, it will be ignored, please remove it to avoid potential confusion 
+[+] Building 15.8s (17/60)                                                                                                                                                                    
+ => [internal] load local bake definitions                                                                                                                                               0.0s
+ => => reading from stdin 2.52kB                                                                                                                                                         0.0s
+ => [internal] load build definition from Dockerfile                                                                                                                                     0.0s
+ => => transferring dockerfile: 10.41kB                                                                                                                                                  0.0s
+ => [internal] load metadata for docker.io/library/node:20.20.1-bullseye                                                                                                                 0.9s
+ => [internal] load metadata for docker.io/library/python:3.11.9-slim-bullseye                                                                                                           0.9s
+ => [internal] load .dockerignore                                                                                                                                                        0.0s
+ => => transferring context: 2B                                                                                                                                                          0.0s
+ => [internal] load build context                                                                                                                                                        0.0s
+ => => transferring context: 50.84kB                                                                                                                                                     0.0s
+ => CACHED [python311 1/1] FROM docker.io/library/python:3.11.9-slim-bullseye@sha256:fe8df05de0fe659668a0b6fa204c652092e3e96832a9c7d6f8cc1e0e03e663d8                                    0.1s
+ => => resolve docker.io/library/python:3.11.9-slim-bullseye@sha256:fe8df05de0fe659668a0b6fa204c652092e3e96832a9c7d6f8cc1e0e03e663d8                                                     0.1s
+ => [frontend 1/8] FROM docker.io/library/node:20.20.1-bullseye@sha256:42a74540b62599111c6c2c1c931e8fc97d7e9aca4071cae157b3418c2739d8c0                                                  6.5s
+ => => resolve docker.io/library/node:20.20.1-bullseye@sha256:42a74540b62599111c6c2c1c931e8fc97d7e9aca4071cae157b3418c2739d8c0                                                           0.1s
+ => => sha256:d9b0ce93cf4af0a4d1b914449aeaf95a8e726b5e8a02586a2328cd76f9d782d4 197.25MB / 197.25MB                                                                                       3.9s
+ => => sha256:e759575b5b0029fea51256b7ad3afa90c8ff1a6a9457787359c2b05b4a964edd 53.76MB / 53.76MB                                                                                         1.5s
+ => => extracting sha256:e759575b5b0029fea51256b7ad3afa90c8ff1a6a9457787359c2b05b4a964edd                                                                                                0.6s
+ => => extracting sha256:aa0ff4d4cf746a31c00387c43ae977fe8857c000814b13a0e845ac0ad9512cce                                                                                                0.2s
+ => => extracting sha256:faec137085b3e3d42618e8e8e1e58ee7d0a106e862a2d903b6c184338bd17249                                                                                                0.7s
+ => => extracting sha256:d9b0ce93cf4af0a4d1b914449aeaf95a8e726b5e8a02586a2328cd76f9d782d4                                                                                                1.7s
+ => => extracting sha256:a47af8458876aa977fd9c12dc5f020ed884c93eba1516d210ac69dccd18b4950                                                                                                0.0s
+ => => extracting sha256:beca4460bf8da24cb1417a7a810e6b96e06af64849a10af45a3723cff5c89bc8                                                                                                0.7s
+ => => extracting sha256:aacace5a14f4c12cce0f9cc5562a80ea6aa1daafc34dd7925a9c0d66f8236efc                                                                                                0.0s
+ => => extracting sha256:7e97cd8efbd7c349d705ad45ac90655fb35b136f3ee14b3cb79e96b4f620c45e                                                                                                0.0s
+ => CANCELED [backend  2/24] RUN apt-get update && apt-get install -y     wget unzip curl git     build-essential g++ make     libssl1.1 libffi7 zlib1g libbz2-1.0 libsqlite3-0 liblzma  8.2s
+ => CANCELED [final  2/23] RUN npm install -g npm@10.8.2                                                                                                                                 8.1s
+ => [frontend 2/8] RUN npm install -g pnpm                                                                                                                                               2.0s
+ => [frontend 3/8] WORKDIR /app                                                                                                                                                          0.1s
+ => [frontend 4/8] COPY frontend/pnpm-workspace.yaml frontend/pnpm-lock.yaml frontend/package.json ./                                                                                    0.1s
+ => [frontend 5/8] COPY frontend/lib ./lib                                                                                                                                               0.1s
+ => [frontend 6/8] COPY frontend/artifacts ./artifacts                                                                                                                                   0.1s
+ => [frontend 7/8] RUN pnpm install --frozen-lockfile                                                                                                                                    4.7s
+ => ERROR [frontend 8/8] RUN pnpm --filter @workspace/device-control run build                                                                                                           0.9s
+------                                                                                                                                                                                        
+ > [frontend 8/8] RUN pnpm --filter @workspace/device-control run build:                                                                                                                      
+0.689                                                                                                                                                                                         
+0.689 > @workspace/device-control@0.0.0 build /app/artifacts/device-control                                                                                                                   
+0.689 > vite build --config vite.config.ts                                                                                                                                                    
+0.689                                                                                                                                                                                         
+0.785 ▲ [WARNING] Cannot find base config file "../../tsconfig.base.json" [tsconfig.json]                                                                                                     
+0.785                                                                                                                                                                                         
+0.785     tsconfig.json:2:13:                                                                                                                                                                 
+0.785       2 │   "extends": "../../tsconfig.base.json",                                                                                                                                      
+0.785         ╵              ~~~~~~~~~~~~~~~~~~~~~~~~~~
+0.785 
+0.871 failed to load config from /app/artifacts/device-control/vite.config.ts
+0.873 error during build:
+0.873 Error: PORT environment variable is required but was not provided.
+0.873     at file:///app/artifacts/device-control/node_modules/.vite-temp/vite.config.ts.timestamp-1777046896275-c400e6cbf1453.mjs:10:9
+0.873     at ModuleJob.run (node:internal/modules/esm/module_job:325:25)
+0.873     at async ModuleLoader.import (node:internal/modules/esm/loader:606:24)
+0.873     at async loadConfigFromBundledFile (file:///app/node_modules/.pnpm/vite@7.3.2_@types+node@25.3.5_jiti@2.6.1_lightningcss@1.31.1_tsx@4.21.0_yaml@2.8.2/node_modules/vite/dist/node/chunks/config.js:35920:12)
+0.873     at async bundleAndLoadConfigFile (file:///app/node_modules/.pnpm/vite@7.3.2_@types+node@25.3.5_jiti@2.6.1_lightningcss@1.31.1_tsx@4.21.0_yaml@2.8.2/node_modules/vite/dist/node/chunks/config.js:35808:17)
+0.873     at async loadConfigFromFile (file:///app/node_modules/.pnpm/vite@7.3.2_@types+node@25.3.5_jiti@2.6.1_lightningcss@1.31.1_tsx@4.21.0_yaml@2.8.2/node_modules/vite/dist/node/chunks/config.js:35775:42)
+0.873     at async resolveConfig (file:///app/node_modules/.pnpm/vite@7.3.2_@types+node@25.3.5_jiti@2.6.1_lightningcss@1.31.1_tsx@4.21.0_yaml@2.8.2/node_modules/vite/dist/node/chunks/config.js:35424:22)
+0.873     at async createBuilder (file:///app/node_modules/.pnpm/vite@7.3.2_@types+node@25.3.5_jiti@2.6.1_lightningcss@1.31.1_tsx@4.21.0_yaml@2.8.2/node_modules/vite/dist/node/chunks/config.js:33879:19)
+0.873     at async CAC.<anonymous> (file:///app/node_modules/.pnpm/vite@7.3.2_@types+node@25.3.5_jiti@2.6.1_lightningcss@1.31.1_tsx@4.21.0_yaml@2.8.2/node_modules/vite/dist/node/cli.js:629:10)
+0.889 /app/artifacts/device-control:
+0.889  ERR_PNPM_RECURSIVE_RUN_FIRST_FAIL  @workspace/device-control@0.0.0 build: `vite build --config vite.config.ts`
+0.889 Exit status 1
+------
+[+] up 0/1
+ ⠙ Image mag_spot Building                                                                                                                                                               15.9s
+Dockerfile:148
+
+--------------------
+
+ 146 |     RUN pnpm install --frozen-lockfile
+
+ 147 |     
+
+ 148 | >>> RUN pnpm --filter @workspace/device-control run build
+
+ 149 |     
+
+ 150 |     
+
+--------------------
+
+failed to solve: process "/bin/sh -c pnpm --filter @workspace/device-control run build" did not complete successfully: exit code: 1
+
+ensar-abazi@Enab:~/Desktop/MagSpot-live$ 
