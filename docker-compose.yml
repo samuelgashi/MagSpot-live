@@ -124,9 +124,9 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
       - ${ADB_VENDOR_KEYS_HOST}:${ADB_VENDOR_KEYS_CONTAINER}
       - /home/${USER}/adb_keys_backup:/home/appuser/.android:ro
+      - /dev/bus/usb:/dev/bus/usb
       # - /home/glitch/.android:/home/appuser/.android
       # - /home/glitch/.android:/root/.android
-      # - /dev/bus/usb:/dev/bus/usb
 
     command: >
       sh -c "python3 backend/wsgi.py & 
