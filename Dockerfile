@@ -185,7 +185,7 @@ COPY --from=backend /app /app/backend
 # ----------------------------
 # Frontend
 # ----------------------------
-COPY --from=frontend /app/artifacts/device-control/dist /app/frontend/dist
+COPY --from=frontend /app/artifacts/device-control/dist/public /app/frontend/dist
 
 # ----------------------------
 # Python runtime deps

@@ -5,8 +5,8 @@
     "port": 5555,
     "serial": "R58MC2LXXMH",
     "model": "SM-G975N",
-    "status": "online",
-    "lastSeen": "2026-04-24T16:23:15.176Z",
+    "status": "offline",
+    "lastSeen": "2026-04-24T16:39:05.724Z",
     "octet": 0
   },
   {
@@ -15,8 +15,8 @@
     "port": 5555,
     "serial": "R58MC2LXXMH",
     "model": "SM-G975N",
-    "status": "online",
-    "lastSeen": "2026-04-24T16:23:15.176Z",
+    "status": "offline",
+    "lastSeen": "2026-04-24T16:39:05.724Z",
     "octet": 0
   }
 ]

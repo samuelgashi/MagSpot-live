@@ -130,7 +130,7 @@ services:
 
     command: >
       sh -c "python3 backend/wsgi.py & 
-            serve -s frontend/dist -l ${FRONTEND_PORT}"
+            serve -s frontend/dist -l ${FRONTEND_PORT} --no-dir-listing"
 
     depends_on:
       - magSpot-postgres
