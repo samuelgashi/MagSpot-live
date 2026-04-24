@@ -1,0 +1,54 @@
+ => resolving provenance for metadata file                                                                                                                                               0.0s
+[+] up 4/4
+ ✔ Image mag_spot             Built                                                                                                                                                     147.4s
+ ✔ Container magSpot_postgres Running                                                                                                                                                     0.0s
+ ✔ Container magSpot          Started                                                                                                                                                    11.5s
+ ! magSpot                    Published ports are discarded when using host network mode                                                                                                  0.0s
+ensar-abazi@Enab:~/Desktop/MagSpot-live$ docker logs magSpot
+/usr/local/lib/node_modules/serve/node_modules/arg/index.js:132
+						throw new ArgError(
+						      ^
+
+ArgError: unknown or unexpected option: --no-dir-listing
+    at arg (/usr/local/lib/node_modules/serve/node_modules/arg/index.js:132:13)
+    at parseArguments (file:///usr/local/lib/node_modules/serve/build/main.js:414:28)
+    at file:///usr/local/lib/node_modules/serve/build/main.js:503:40
+    at ModuleJob.run (node:internal/modules/esm/module_job:325:25)
+    at async ModuleLoader.import (node:internal/modules/esm/loader:606:24)
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5) {
+  code: 'ARG_UNKNOWN_OPTION'
+}
+
+Node.js v20.20.1
+/usr/local/lib/node_modules/serve/node_modules/arg/index.js:132
+						throw new ArgError(
+						      ^
+
+ArgError: unknown or unexpected option: --no-dir-listing
+    at arg (/usr/local/lib/node_modules/serve/node_modules/arg/index.js:132:13)
+    at parseArguments (file:///usr/local/lib/node_modules/serve/build/main.js:414:28)
+    at file:///usr/local/lib/node_modules/serve/build/main.js:503:40
+    at ModuleJob.run (node:internal/modules/esm/module_job:325:25)
+    at async ModuleLoader.import (node:internal/modules/esm/loader:606:24)
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5) {
+  code: 'ARG_UNKNOWN_OPTION'
+}
+
+Node.js v20.20.1
+/usr/local/lib/node_modules/serve/node_modules/arg/index.js:132
+						throw new ArgError(
+						      ^
+
+ArgError: unknown or unexpected option: --no-dir-listing
+    at arg (/usr/local/lib/node_modules/serve/node_modules/arg/index.js:132:13)
+    at parseArguments (file:///usr/local/lib/node_modules/serve/build/main.js:414:28)
+    at file:///usr/local/lib/node_modules/serve/build/main.js:503:40
+    at ModuleJob.run (node:internal/modules/esm/module_job:325:25)
+    at async ModuleLoader.import (node:internal/modules/esm/loader:606:24)
+    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5) {
+  code: 'ARG_UNKNOWN_OPTION'
+}
+
+Node.js v20.20.1
+/usr/local/lib/node_modules/serve/node_modules/arg/index.js:132
+						throw new ArgError(
