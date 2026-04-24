@@ -229,28 +229,4 @@ def create_app():
 
     init_admin_user()
 
-    # ------------------------------------
-    # Serve the frontend SPA
-    # ------------------------------------
-    # Flask already handles /api/* via blueprints (registered above).
-    # This catch-all serves static assets and falls back to index.html
-    # for any route the React router owns.  It only activates when the
-    # dist directory is present (i.e. inside the Docker image), so it
-    # does nothing in the local dev environment where Vite is used.
-    import os
-    from flask import send_from_directory, abort as flask_abort
-
-    FRONTEND_DIST = os.environ.get('FRONTEND_DIST', '/app/frontend/dist')
-
-    @app.route('/', defaults={'path': ''})
-    @app.route('/<path:path>')
-    def serve_spa(path):
-        dist = FRONTEND_DIST
-        if not os.path.isdir(dist):
-            flask_abort(404)
-        file_path = os.path.join(dist, path) if path else None
-        if file_path and os.path.isfile(file_path):
-            return send_from_directory(dist, path)
-        return send_from_directory(dist, 'index.html')
-
     return app
