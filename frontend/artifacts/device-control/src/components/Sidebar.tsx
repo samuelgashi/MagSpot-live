@@ -5,7 +5,7 @@ import { Plus, Layers, Smartphone, RefreshCw, ChevronDown } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { CreateGroupModal } from "./CreateGroupModal";
 import { ACTIVITY_LIST, ACTIVITY_META, getIconLogo, getSimulatedActivity } from "./PlatformLogos";
-import { getMagSpotActivities, MagSpotActivity, buildMagSpotApiUrl, getMagSpotHeaders } from "@/lib/magspotApi";
+import { getMagSpotActivities, MagSpotActivity, buildMagSpotApiUrl, getMagSpotHeaders, getMagSpotDeviceBackendId } from "@/lib/magspotApi";
 import { useLang } from "../lib/lang";
 import { ArtistActivityModal, ActivityModalKind, ActivityParams } from "./ArtistActivityModal";
 import { FocusedDevice } from "./DeviceGrid";
@@ -93,7 +93,15 @@ export function Sidebar({
       console.error("[Activity] No matching activity found for kind:", params.kind);
       return;
     }
-    const body = { ...(params.formData ?? {}), device_ids: params.deviceIds };
+    const backendDeviceIds = params.deviceIds.map((numId) => {
+      const device = sortedDevices.find((d) => d.id === numId);
+      return device ? getMagSpotDeviceBackendId(device) : String(numId);
+    });
+    const body = {
+      ...(params.formData ?? {}),
+      device_id: backendDeviceIds[0] ?? null,
+      device_ids: backendDeviceIds,
+    };
     try {
       const response = await fetch(buildMagSpotApiUrl(activity.endpoint), {
         method: activity.method,
