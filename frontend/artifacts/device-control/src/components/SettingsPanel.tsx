@@ -38,7 +38,7 @@ export function SettingsPanel({ onClose, onLogout }: { onClose: () => void; onLo
     // will already show the correct URL on first open.
     const stored = localStorage.getItem("apiBackendUrl") || "";
     if (!stored.trim()) {
-      const baked = (import.meta.env.VITE_BACKEND_API_URL as string | undefined)?.trim();
+      const baked = __BACKEND_API_URL__?.trim();
       if (baked) {
         localStorage.setItem("apiBackendUrl", baked);
         setApiUrl(baked);

@@ -13,6 +13,10 @@ if (rawPort && (Number.isNaN(port) || port <= 0)) {
 
 const basePath = process.env.BASE_PATH || "/";
 
+// Inject BACKEND_API_URL (no VITE_ prefix required) into the browser bundle
+// as a compile-time constant so it works from plain .env / Docker --build-arg.
+const backendApiUrl = process.env.BACKEND_API_URL ?? "";
+
 export default defineConfig({
   base: basePath,
   plugins: [
@@ -33,6 +37,11 @@ export default defineConfig({
         ]
       : []),
   ],
+  define: {
+    // Makes BACKEND_API_URL available in browser code as __BACKEND_API_URL__
+    // without needing the VITE_ prefix. Set it in .env or as a Docker build-arg.
+    __BACKEND_API_URL__: JSON.stringify(backendApiUrl),
+  },
   resolve: {
     alias: {
       "@": path.resolve(import.meta.dirname, "src"),

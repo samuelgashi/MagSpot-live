@@ -29,7 +29,7 @@ function readDeviceIdMap(): Record<string, string> {
 export function getMagSpotBackendUrl(): string {
   const stored = readLocalStorage("apiBackendUrl");
   if (stored && stored.trim()) return stored.trim();
-  const baked = (import.meta.env.VITE_BACKEND_API_URL as string | undefined)?.trim();
+  const baked = __BACKEND_API_URL__?.trim();
   if (baked) return baked;
   return "/api";
 }
