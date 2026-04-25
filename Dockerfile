@@ -161,7 +161,7 @@ RUN npm install -g npm@10.8.2
 # ----------------------------
 RUN apt-get update && apt-get install -y \
     libssl1.1 libffi7 zlib1g libbz2-1.0 libsqlite3-0 liblzma5 libreadline8 \
-    adb curl nginx \
+    adb curl nginx gettext-base \
     && rm -rf /var/lib/apt/lists/* \
     && rm -f /etc/nginx/sites-enabled/default
 
