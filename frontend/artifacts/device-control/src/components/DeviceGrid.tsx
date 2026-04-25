@@ -340,9 +340,10 @@ function buildVideoSettingsMsg(
 const SCRCPY_ENCODER = "";
 //
 // Stream quality — tweak here to trade resolution/bitrate for latency.
-// At 300 devices these numbers matter: 420p @ 1 Mbps keeps bandwidth tight.
-const SCRCPY_MAX_SIZE      = 420;        // max dimension in px  (420 ≈ 420p)
-const SCRCPY_BITRATE       = 1_000_000; // bits/s  — 1 Mbps is plenty at 420p
+// ─── To downgrade resolution: change SCRCPY_MAX_SIZE back to 420 and SCRCPY_BITRATE back to 1_000_000 ───
+const SCRCPY_MAX_SIZE      = 720;        // max dimension in px  (720 = 720p HD)
+const SCRCPY_BITRATE       = 2_500_000; // bits/s  — 2.5 Mbps suits 720p well
+// Downgrade option:  SCRCPY_MAX_SIZE = 420, SCRCPY_BITRATE = 1_000_000  (420p @ 1 Mbps)
 const SCRCPY_FPS           = 30;
 const SCRCPY_IFRAME_SECS   = 1;         // I-frame every 1 s → fast decoder lock-on
 
@@ -420,6 +421,16 @@ function findAnnexBStartCode(data: Uint8Array, from: number): [number, number] {
   }
   return [-1, 0];
 }
+
+/**
+ * Module-level cache: device.id → last known wsUrl.
+ * When the dashboard small card already has a live scrcpy URL for a device,
+ * the focused big-screen modal reuses it instantly instead of making a new
+ * HTTP round-trip to start-scrcpy-server (which takes 3-7 s on cold devices).
+ * The cache entry is cleared on WebSocket error or unexpected close so the
+ * next open always retries the HTTP call and gets a fresh URL.
+ */
+const _scrcpyWsUrlCache = new Map<number, string>();
 
 /**
  * Connect directly to a ws-scrcpy server running on the Android device.
@@ -549,8 +560,19 @@ function useScrcpyDirectVideo(
           error: () => { if (!cancelled) { setConnected(false); setFailed(true); } },
         });
 
-        // Ask backend to push the jar and start the scrcpy-server on the device
-        const { wsUrl } = await postMagSpotStartScrcpyServer(device);
+        // Reuse a cached wsUrl if the dashboard stream already fetched one for
+        // this device — avoids the 3-7 s HTTP round-trip when the focused modal
+        // opens while the small card is already streaming.
+        const cachedUrl = _scrcpyWsUrlCache.get(device.id);
+        let wsUrl: string;
+        if (cachedUrl) {
+          wsUrl = cachedUrl;
+        } else {
+          const result = await postMagSpotStartScrcpyServer(device);
+          if (cancelled) return;
+          wsUrl = result.wsUrl;
+          _scrcpyWsUrlCache.set(device.id, wsUrl);
+        }
         if (cancelled) return;
 
         fallbackTimer = window.setTimeout(() => {
@@ -582,8 +604,16 @@ function useScrcpyDirectVideo(
           processChunk(data);
         };
 
-        socket.onerror = () => { if (!cancelled) setFailed(true); };
-        socket.onclose = () => { if (!cancelled) { setConnected(false); setFailed(true); } };
+        socket.onerror = () => {
+          // Invalidate cache so the next open fetches a fresh server URL
+          _scrcpyWsUrlCache.delete(device.id);
+          if (!cancelled) setFailed(true);
+        };
+        socket.onclose = () => {
+          // Invalidate cache on unexpected close — stale URLs cause instant failure
+          _scrcpyWsUrlCache.delete(device.id);
+          if (!cancelled) { setConnected(false); setFailed(true); }
+        };
       } catch {
         if (!cancelled) { setConnected(false); setFailed(true); }
       }
