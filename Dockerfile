@@ -161,8 +161,9 @@ RUN npm install -g npm@10.8.2
 # ----------------------------
 RUN apt-get update && apt-get install -y \
     libssl1.1 libffi7 zlib1g libbz2-1.0 libsqlite3-0 liblzma5 libreadline8 \
-    adb curl \
-    && rm -rf /var/lib/apt/lists/*
+    adb curl nginx \
+    && rm -rf /var/lib/apt/lists/* \
+    && rm -f /etc/nginx/sites-enabled/default
 
 # ----------------------------
 # Python 3.11.9
@@ -194,9 +195,15 @@ COPY backend/requirements.txt /tmp/requirements.txt
 RUN python3.11 -m pip install --no-cache-dir -r /tmp/requirements.txt
 
 # ----------------------------
-# Static file server
+# nginx config (baked at build time from ARGs)
 # ----------------------------
-RUN npm install -g serve
+ARG BACKEND_PORT=9786
+ARG FRONTEND_PORT=9787
+COPY nginx/magspot.conf.template /tmp/magspot.conf.template
+RUN envsubst '${FRONTEND_PORT} ${BACKEND_PORT}' < /tmp/magspot.conf.template \
+        > /etc/nginx/conf.d/default.conf \
+    && rm /tmp/magspot.conf.template \
+    && sed -i 's|pid /run/nginx.pid;|pid /tmp/nginx.pid;|' /etc/nginx/nginx.conf
 
 # ---------------------------------------------
 # Copy cloudflared binary from backend stage 
@@ -231,6 +238,11 @@ RUN mkdir -p /app/backend/uploads /app/backend/bin /app/backend/bin/database \
 
 RUN mkdir -p /home/appuser/.android \
     && chown -R appuser:docker /home/appuser/.android
+
+# Let appuser run nginx (non-privileged port, temp dirs, logs)
+RUN mkdir -p /var/lib/nginx/body /var/lib/nginx/proxy \
+    && chown -R appuser:docker /var/log/nginx /var/lib/nginx \
+    && chmod -R 755 /var/log/nginx /var/lib/nginx
 
 USER appuser
 

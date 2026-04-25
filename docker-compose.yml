@@ -129,8 +129,8 @@ services:
       # - /home/glitch/.android:/root/.android
 
     command: >
-      sh -c "python3 backend/wsgi.py & 
-            serve -s frontend/dist -l ${FRONTEND_PORT}"
+      sh -c "python3 backend/wsgi.py &
+            nginx -g 'daemon off;'"
 
     depends_on:
       - magSpot-postgres
