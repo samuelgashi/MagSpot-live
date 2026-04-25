@@ -342,7 +342,7 @@ const SCRCPY_ENCODER = "";
 // Stream quality — tweak here to trade resolution/bitrate for latency.
 // ─── To downgrade resolution: change SCRCPY_MAX_SIZE back to 420 and SCRCPY_BITRATE back to 1_000_000 ───
 const SCRCPY_MAX_SIZE      = 720;        // max dimension in px  (720 = 720p HD)
-const SCRCPY_BITRATE       = 2_500_000; // bits/s  — 2.5 Mbps suits 720p well
+const SCRCPY_BITRATE       = 1_000_000; // bits/s  — 2.5 Mbps suits 720p well
 // Downgrade option:  SCRCPY_MAX_SIZE = 420, SCRCPY_BITRATE = 1_000_000  (420p @ 1 Mbps)
 const SCRCPY_FPS           = 30;
 const SCRCPY_IFRAME_SECS   = 1;         // I-frame every 1 s → fast decoder lock-on
