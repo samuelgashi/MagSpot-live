@@ -89,17 +89,13 @@ def stream_youtube_shorts():
             TASK_CANCEL_EVENTS[task_id] = cancel_event
             TASK_RUNTIME[task_id] = { "device_id": device_id, "container_id": None }
 
-            play_hours_for_device = random.randint(
-                max(1, round(min_play_hours)),
-                max(1, round(max_play_hours))
-            )
             thread = threading.Thread(
                 target=stream_worker_node,
                 args=(
                     g.user_id,
                     task_id,
                     device_details,
-                    play_hours_for_device,
+                    random.uniform(min_play_hours, max_play_hours),
                     isOverrideResolution,
                     cancel_event
                 ),
