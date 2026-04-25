@@ -5,7 +5,7 @@ import { Plus, Layers, Smartphone, RefreshCw, ChevronDown } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { CreateGroupModal } from "./CreateGroupModal";
 import { ACTIVITY_LIST, ACTIVITY_META, getIconLogo, getSimulatedActivity } from "./PlatformLogos";
-import { getMagSpotActivities, MagSpotActivity } from "@/lib/magspotApi";
+import { getMagSpotActivities, MagSpotActivity, buildMagSpotApiUrl, getMagSpotHeaders } from "@/lib/magspotApi";
 import { useLang } from "../lib/lang";
 import { ArtistActivityModal, ActivityModalKind, ActivityParams } from "./ArtistActivityModal";
 import { FocusedDevice } from "./DeviceGrid";
@@ -86,9 +86,25 @@ export function Sidebar({
       .catch(() => setApiActivities([]));
   }, []);
 
-  const handleActivityStart = (params: ActivityParams) => {
-    console.log("[Activity]", params);
-    // TODO: dispatch to devices via API
+  const handleActivityStart = async (params: ActivityParams) => {
+    const backendKey = Object.entries(BACKEND_KEY_TO_MODAL).find(([, v]) => v === params.kind)?.[0];
+    const activity = apiActivities.find((a) => a.key === backendKey);
+    if (!activity) {
+      console.error("[Activity] No matching activity found for kind:", params.kind);
+      return;
+    }
+    const body = { ...(params.formData ?? {}), device_ids: params.deviceIds };
+    try {
+      const response = await fetch(buildMagSpotApiUrl(activity.endpoint), {
+        method: activity.method,
+        headers: getMagSpotHeaders(),
+        body: JSON.stringify(body),
+      });
+      const result = await response.json();
+      console.log("[Activity] Response:", result);
+    } catch (err) {
+      console.error("[Activity] Request failed:", err);
+    }
   };
 
   // ── Rubber-band drag state (refs → no re-renders during drag) ──

@@ -32,10 +32,23 @@ function normalizeResources(raw: unknown): ResourceState {
     ? (raw as { data?: ResourcePayload }).data
     : raw as ResourcePayload;
   const containers = payload?.containers;
+  let containerCount: number | null = null;
+  if (Array.isArray(containers)) {
+    containerCount = containers.length;
+  } else if (containers && typeof containers === "object") {
+    const values = (containers as Record<string, unknown>).values;
+    if (values && typeof values === "object") {
+      const running = (values as Record<string, unknown>).running;
+      const parsed = parseInt(String(running ?? ""), 10);
+      containerCount = Number.isFinite(parsed) ? parsed : null;
+    } else {
+      containerCount = Object.keys(containers).length;
+    }
+  }
   return {
     cpu: getPercent(payload?.cpu),
     ram: getPercent(payload?.ram),
-    containers: Array.isArray(containers) ? containers.length : containers && typeof containers === "object" ? Object.keys(containers).length : null,
+    containers: containerCount,
   };
 }
 
