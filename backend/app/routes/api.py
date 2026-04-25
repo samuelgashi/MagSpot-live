@@ -4,6 +4,8 @@ import subprocess
 import socket
 import time
 import os
+import json
+import threading
 from datetime import datetime
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from app.config import Config
@@ -942,6 +944,49 @@ def get_system_resources():
             "status": "error",
             "message": str(e)
         }), 500
+
+
+_REGISTRY_FILE = os.path.join(Config.JSON_FOLDER, "device_registry.json")
+_registry_lock = threading.Lock()
+
+def _load_registry() -> dict:
+    try:
+        with open(_REGISTRY_FILE, "r") as f:
+            return json.load(f)
+    except Exception:
+        return {}
+
+def _save_registry(data: dict) -> None:
+    os.makedirs(os.path.dirname(_REGISTRY_FILE), exist_ok=True)
+    with open(_REGISTRY_FILE, "w") as f:
+        json.dump(data, f, indent=2)
+
+
+@api_keys_bp.route('/device-registry', methods=['GET'])
+def get_device_registry():
+    with _registry_lock:
+        registry = _load_registry()
+    return jsonify({"status": "ok", "data": registry}), 200
+
+
+@api_keys_bp.route('/device-registry/<path:device_id>', methods=['PUT'])
+def put_device_registry(device_id):
+    record = request.get_json(silent=True) or {}
+    with _registry_lock:
+        registry = _load_registry()
+        existing = registry.get(device_id) or {}
+        registry[device_id] = {**existing, **record}
+        _save_registry(registry)
+    return jsonify({"status": "ok", "data": registry[device_id]}), 200
+
+
+@api_keys_bp.route('/device-registry/<path:device_id>', methods=['DELETE'])
+def delete_device_registry(device_id):
+    with _registry_lock:
+        registry = _load_registry()
+        registry.pop(device_id, None)
+        _save_registry(registry)
+    return jsonify({"status": "ok"}), 200
 
 
 SCRCPY_SERVER_JAR = os.path.join(

@@ -5,6 +5,7 @@ import { Save, Trash2, X } from "lucide-react";
 import { useLang } from "@/lib/lang";
 import { CountryOption, countryFlag, matchCountries } from "@/lib/countries";
 import { deviceStatusColor } from "@/lib/deviceUtils";
+import { buildMagSpotApiUrl, getMagSpotHeaders } from "@/lib/magspotApi";
 
 const ACCENT = "#00d4e8";
 const ACCENT_RGB = "0,212,232";
@@ -69,7 +70,9 @@ export function safeLoadRecords(): DeviceRegistryMap {
 
 async function fetchRegistryFromApi(): Promise<DeviceRegistryMap | null> {
   try {
-    const res = await fetch("/api/device-registry");
+    const res = await fetch(buildMagSpotApiUrl("/api/device-registry"), {
+      headers: getMagSpotHeaders(),
+    });
     if (!res.ok) return null;
     const json = await res.json();
     return json?.data ?? null;
@@ -80,9 +83,9 @@ async function fetchRegistryFromApi(): Promise<DeviceRegistryMap | null> {
 
 async function pushRecordToApi(deviceId: string, record: DeviceRegistryRecord): Promise<void> {
   try {
-    await fetch(`/api/device-registry/${encodeURIComponent(deviceId)}`, {
+    await fetch(buildMagSpotApiUrl(`/api/device-registry/${encodeURIComponent(deviceId)}`), {
       method: "PUT",
-      headers: { "Content-Type": "application/json" },
+      headers: getMagSpotHeaders(),
       body: JSON.stringify(record),
     });
   } catch { /* ignore */ }
@@ -90,7 +93,10 @@ async function pushRecordToApi(deviceId: string, record: DeviceRegistryRecord): 
 
 async function deleteRecordFromApi(deviceId: string): Promise<void> {
   try {
-    await fetch(`/api/device-registry/${encodeURIComponent(deviceId)}`, { method: "DELETE" });
+    await fetch(buildMagSpotApiUrl(`/api/device-registry/${encodeURIComponent(deviceId)}`), {
+      method: "DELETE",
+      headers: getMagSpotHeaders(),
+    });
   } catch { /* ignore */ }
 }
 
