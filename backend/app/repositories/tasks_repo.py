@@ -75,22 +75,36 @@ def db_update_logs(user_id, timestamp, log, task_id):
         return True
 
 
-def db_get_tasks(user_id):
-    """Get all tasks for a user ordered by created_at DESC"""
+def db_get_tasks(user_id, page=1, limit=300):
+    """Get paginated tasks for a user ordered by created_at DESC"""
     with SessionLocal() as session:
-        tasks = session.query(Task).filter_by(user_id=user_id).order_by(Task.created_at.desc()).all()
-        return [
-            {
-                "task_id": t.task_id,
-                "device_id": t.device_id,
-                "status": t.status,
-                "progress": t.progress,
-                "logs": t.logs,
-                "task_type": t.task_type,
-                "created_at": t.created_at
-            }
-            for t in tasks
-        ]
+        total = session.query(Task).filter_by(user_id=user_id).count()
+        offset = (max(1, page) - 1) * limit
+        tasks = (
+            session.query(Task)
+            .filter_by(user_id=user_id)
+            .order_by(Task.created_at.desc())
+            .offset(offset)
+            .limit(limit)
+            .all()
+        )
+        return {
+            "tasks": [
+                {
+                    "task_id": t.task_id,
+                    "device_id": t.device_id,
+                    "status": t.status,
+                    "progress": t.progress,
+                    "logs": t.logs,
+                    "task_type": t.task_type,
+                    "created_at": t.created_at,
+                }
+                for t in tasks
+            ],
+            "total": total,
+            "page": page,
+            "limit": limit,
+        }
 
 
 def db_get_task_by_id(user_id, task_id):

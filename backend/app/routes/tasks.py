@@ -12,11 +12,11 @@ from flask import Blueprint, request, jsonify, g
 @auth_required
 def get_tasks():
     try:
-        rows = db_get_tasks(g.user_id)
-        return jsonify({
-            "tasks": [dict(row) for row in rows]
-        }), 200
-    
+        page = int(request.args.get('page', 1))
+        limit = int(request.args.get('limit', 300))
+        result = db_get_tasks(g.user_id, page=page, limit=limit)
+        return jsonify(result), 200
+
     except Exception as e:
         return jsonify({
             "error": f"Server Side Issue: {e}"

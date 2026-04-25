@@ -282,9 +282,9 @@ export async function executeMagSpotAdbCommand(devices: Array<{ id: number; ip?:
   return { normalized, results };
 }
 
-export async function getMagSpotTasks() {
-  const response = await fetch(buildMagSpotApiUrl("/api/tasks"), { headers: getMagSpotHeaders() });
-  return readJsonOrThrow<{ tasks: MagSpotTask[] }>(response, "Failed to fetch tasks");
+export async function getMagSpotTasks(page = 1, limit = 300) {
+  const response = await fetch(buildMagSpotApiUrl(`/api/tasks?page=${page}&limit=${limit}`), { headers: getMagSpotHeaders() });
+  return readJsonOrThrow<{ tasks: MagSpotTask[]; total: number; page: number; limit: number }>(response, "Failed to fetch tasks");
 }
 
 export async function getMagSpotTask(taskId: string) {

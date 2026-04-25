@@ -1083,7 +1083,7 @@ function DeviceCard({
               userSelect: "none",
             }}
           >
-            {/* IP last octet */}
+            {/* Device Number */}
             <span
               className="font-mono font-bold leading-none shrink-0"
               style={{
@@ -1093,7 +1093,7 @@ function DeviceCard({
                 textAlign: "right",
               }}
             >
-              {isUsbDevice(device) ? (device.ip ?? "USB").split(":")[0].slice(0, 4) : (device.ip ?? "").split(":")[0].split(".").pop() ?? "—"}
+              {registryRecord?.deviceNumber?.trim() || String(displayNum).padStart(3, "0")}
             </span>
 
             {!compact && (
@@ -1101,11 +1101,24 @@ function DeviceCard({
                 className="font-sans leading-none truncate flex-1 text-center mx-1"
                 style={{ fontSize: "10px", fontWeight: 600, color: "rgba(148,163,184,0.75)" }}
               >
-                {deviceName || deviceModel || ""}
+                {(device.ip ?? "").split(":")[0] || "—"}
               </span>
             )}
 
-            <div className="flex items-center gap-1.5 shrink-0">
+            <div className="flex items-center gap-1 shrink-0">
+              {!compact && deviceModel && (
+                <span
+                  className="font-mono leading-none px-1 py-0.5 rounded max-w-[52px] truncate"
+                  style={{
+                    fontSize: "8px",
+                    color: "rgba(255,255,255,0.55)",
+                    background: "rgba(255,255,255,0.06)",
+                    border: "1px solid rgba(255,255,255,0.09)",
+                  }}
+                >
+                  {deviceModel}
+                </span>
+              )}
               {countryBadge && (
                 <span
                   className="font-mono leading-none px-1.5 py-0.5 rounded"
@@ -1628,35 +1641,35 @@ export function DeviceFocusModal({
             }}
           >
             <div className="flex items-center gap-2 min-w-0">
-              <div
-                className="w-1.5 h-1.5 rounded-full shrink-0"
-                style={{ backgroundColor: deviceStatusColor(device), boxShadow: `0 0 4px ${deviceStatusColor(device)}` }}
-              />
+              {/* Device Number */}
               <span
                 className="font-mono font-bold leading-none shrink-0"
                 style={{ fontSize: "11px", color: ACCENT, minWidth: "2ch", textAlign: "right" }}
               >
-                {isUsbDevice(device) ? (device.ip ?? "USB").split(":")[0].slice(0, 4) : (device.ip ?? "").split(":")[0].split(".").pop() ?? "—"}
+                {registryRecord.deviceNumber?.trim() || String(displayNum).padStart(3, "0")}
               </span>
-              <span className="font-mono leading-none truncate" style={{ fontSize: "8px", color: "#7f8791" }}>
-                {adbDeviceName || deviceModel || device.ip}
+              {/* IP Address */}
+              <span className="font-mono leading-none truncate" style={{ fontSize: "9px", color: "#7f8791" }}>
+                {(device.ip ?? "").split(":")[0] || "—"}
               </span>
             </div>
 
             <div className="flex items-center gap-2 shrink-0">
-              {(adbDeviceName || deviceModel) && (
+              {/* Device Model */}
+              {deviceModel && (
                 <span
-                  className="font-mono leading-none px-1.5 py-0.5 rounded max-w-[112px] truncate"
+                  className="font-mono leading-none px-1.5 py-0.5 rounded max-w-[80px] truncate"
                   style={{
-                    fontSize: "10px",
-                    color: "rgba(255,255,255,0.4)",
-                    background: "rgba(255,255,255,0.04)",
-                    border: "1px solid rgba(255,255,255,0.07)",
+                    fontSize: "9px",
+                    color: "rgba(255,255,255,0.55)",
+                    background: "rgba(255,255,255,0.06)",
+                    border: "1px solid rgba(255,255,255,0.09)",
                   }}
                 >
-                  {device.ip}
+                  {deviceModel}
                 </span>
               )}
+              {/* Country */}
               {countryBadge && (
                 <span
                   className="font-mono leading-none px-1.5 py-0.5 rounded"
@@ -1670,6 +1683,7 @@ export function DeviceFocusModal({
                   {countryBadge}
                 </span>
               )}
+              {/* Status dot */}
               <div
                 className="w-1.5 h-1.5 rounded-full shrink-0"
                 style={{ backgroundColor: planIndicator.bg, boxShadow: `0 0 5px ${planIndicator.glow}` }}
