@@ -32,7 +32,22 @@ export function SettingsPanel({ onClose, onLogout }: { onClose: () => void; onLo
   }, [browserTimeZone, timeZone]);
 
   useEffect(() => {
-    setApiUrl(localStorage.getItem("apiBackendUrl") || "");
+    // If the user hasn't saved a URL yet, seed localStorage from the build-time
+    // env var (VITE_BACKEND_API_URL set in .env or passed as a Docker build ARG).
+    // This means deployers only need to set the variable once — the settings panel
+    // will already show the correct URL on first open.
+    const stored = localStorage.getItem("apiBackendUrl") || "";
+    if (!stored.trim()) {
+      const baked = (import.meta.env.VITE_BACKEND_API_URL as string | undefined)?.trim();
+      if (baked) {
+        localStorage.setItem("apiBackendUrl", baked);
+        setApiUrl(baked);
+      } else {
+        setApiUrl("");
+      }
+    } else {
+      setApiUrl(stored);
+    }
     setApiKey(localStorage.getItem("apiKey") || "");
     void loadKeys();
     void loadTunnel();

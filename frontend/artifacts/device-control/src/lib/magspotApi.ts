@@ -19,8 +19,19 @@ function readDeviceIdMap(): Record<string, string> {
   }
 }
 
+/**
+ * Returns the backend API base URL.
+ * Priority order:
+ *  1. localStorage["apiBackendUrl"]  — user's explicit save in Settings panel
+ *  2. import.meta.env.VITE_BACKEND_API_URL — baked in at build time from .env / Docker ARG
+ *  3. "/api"  — relative fallback (works when frontend + backend share the same origin)
+ */
 export function getMagSpotBackendUrl(): string {
-  return readLocalStorage("apiBackendUrl") || "/api";
+  const stored = readLocalStorage("apiBackendUrl");
+  if (stored && stored.trim()) return stored.trim();
+  const baked = (import.meta.env.VITE_BACKEND_API_URL as string | undefined)?.trim();
+  if (baked) return baked;
+  return "/api";
 }
 
 export function buildMagSpotApiUrl(path: string): string {

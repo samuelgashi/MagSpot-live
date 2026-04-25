@@ -122,6 +122,21 @@ EXPOSE ${BACKEND_PORT}
 # ============================================================
 FROM node:20.20.1-bullseye AS frontend
 
+# ── Frontend build-time variables ────────────────────────────────────────────
+# VITE_BACKEND_API_URL  (most important for deployments)
+#   Set this to the public URL of the Flask backend before running docker build.
+#   The value is baked into the browser bundle and automatically written to the
+#   user's localStorage on first load — so the "API Backend URL" field in the
+#   Settings panel is pre-filled without any manual entry.
+#
+#   Examples:
+#     Cloudflare tunnel: VITE_BACKEND_API_URL=https://my-tunnel.trycloudflare.com
+#     Same-origin nginx: VITE_BACKEND_API_URL=        (leave blank → uses /api)
+#     Local dev:         VITE_BACKEND_API_URL=http://localhost:9786
+#
+#   Pass it via: docker build --build-arg VITE_BACKEND_API_URL=https://...
+#             or set it in .env and let docker-compose forward it automatically.
+# ─────────────────────────────────────────────────────────────────────────────
 ARG VITE_BACKEND_API_URL
 ARG BACKEND_HOST
 ARG FRONTEND_API_BASE_URL
