@@ -101,7 +101,6 @@ def stream_by_playlist():
                 continue 
             
             if verify_internet_on_device:
-                print(device_id)
                 if not CHECK_INTERNET_CONNECTIVITY(device_id):
                     update_task(user_id=g.user_id, task_id=task_id, progress=0, status="FAILED", log=f"--- INTERNET NOT CONNECTED: Please Check Internet Connectivity on Device {device_id}")
                     if total_devices == 1: return jsonify({'error': f"--- INTERNET NOT CONNECTED: Please Check Internet Connectivity on {device_id}"}), 400

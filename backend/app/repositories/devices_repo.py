@@ -11,7 +11,6 @@ from app.models.devices import *
 def get_device_details(user_id, device_id):
     with SessionLocal() as session:
         device = session.query(AndroidDevice).filter_by(user_id=user_id, device_id=device_id).first()
-        print(device)
         if not device: return None
         return {
             'valid': True,
